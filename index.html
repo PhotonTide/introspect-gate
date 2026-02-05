@@ -37,7 +37,6 @@
     filter: grayscale(100%) contrast(1.16) brightness(1.06);
   }
 
-  /* ===== HUD ===== */
   .hud{
     position:absolute;
     inset:0;
@@ -178,7 +177,6 @@
     user-select:none;
   }
 
-  /* ===== Portal (SLOW / FLOWING) ===== */
   .portal{
     position:absolute;
     inset:0;
@@ -239,7 +237,6 @@
     100% { transform: scale(2.00); filter: blur(1.25px); }
   }
 
-  /* ===== Coward “page” ===== */
   .cowardPage{
     position:absolute;
     inset:0;
@@ -374,7 +371,7 @@
   let stream = null;
   let raf = null;
 
-  // ===== Motion detection (stronger metric) =====
+  // ===== Motion detection =====
   const mCan = document.createElement("canvas");
   mCan.width = 96;
   mCan.height = 54;
@@ -384,18 +381,23 @@
   let stillMs = 0;
   let triggered = false;
 
-  // Must be still for 7 seconds
   const NEED = 7000;
 
-  // Hysteresis thresholds (THIS is the fix)
-  // - below STILL_THRESH counts
-  // - above MOVE_THRESH resets to zero immediately
-  const STILL_THRESH = 6.0;   // lower = stricter
-  const MOVE_THRESH  = 12.0;  // hard reset when you move
-  const FINISH_QUIET  = 6.0;  // must be in the “still” zone at unlock moment
+  // Hysteresis thresholds
+  const STILL_THRESH = 6.0;
+  const MOVE_THRESH  = 12.0;
+  const FINISH_QUIET  = 6.0;
 
   const PORTAL_DELAY = 240;
-  const REDIRECT_AFTER = 5600;
+
+  // We’ll fade the audio OUT before redirecting.
+  const AUDIO_FADE_MS = 1400;
+
+  // Total time from portal start to redirect:
+  // portal animation is 5600ms; we redirect near the end
+  // but we ensure at least AUDIO_FADE_MS is available for fade.
+  const PORTAL_TOTAL_MS = 5600;
+  const REDIRECT_AFTER = Math.max(900, PORTAL_TOTAL_MS - 250); // ~end of fall
 
   // ===== Ambient sound (procedural) =====
   let audioCtx = null, master = null;
@@ -447,19 +449,35 @@
     master.gain.linearRampToValueAtTime(0.22, audioCtx.currentTime + 1.2);
   }
 
+  function fadeOutAmbient(ms){
+    if (!audioCtx || !master) return;
+    const t = audioCtx.currentTime;
+    const dur = Math.max(0.05, ms / 1000);
+
+    master.gain.cancelScheduledValues(t);
+    master.gain.setValueAtTime(master.gain.value, t);
+    master.gain.linearRampToValueAtTime(0.0001, t + dur);
+
+    // optionally darken shimmer as it fades
+    try{
+      shimmerOsc.frequency.cancelScheduledValues(t);
+      shimmerOsc.frequency.setTargetAtTime(140, t, 1.0);
+    }catch(_){}
+  }
+
   function stopAmbient(){
     if (!audioCtx) return;
     const t = audioCtx.currentTime;
     master.gain.cancelScheduledValues(t);
     master.gain.setValueAtTime(master.gain.value, t);
-    master.gain.linearRampToValueAtTime(0.0, t + 0.6);
+    master.gain.linearRampToValueAtTime(0.0, t + 0.35);
 
     setTimeout(() => {
       try{ droneOsc?.stop(); shimmerOsc?.stop(); lfo?.stop(); }catch(_){}
       audioCtx.close().catch(()=>{});
       audioCtx = null; master = null;
       droneOsc = null; shimmerOsc = null; lfo = null; lfoGain = null;
-    }, 650);
+    }, 450);
   }
 
   function setClock(){
@@ -486,19 +504,27 @@
     hint.textContent = "Falling inward.";
     sub.textContent = "Recognized.";
 
+    // little swell first (optional), then fade before redirect
     if (audioCtx && master){
       const t = audioCtx.currentTime;
       master.gain.cancelScheduledValues(t);
       master.gain.setValueAtTime(master.gain.value, t);
-      master.gain.linearRampToValueAtTime(0.30, t + 1.2);
-      try{ shimmerOsc.frequency.setTargetAtTime(160, t, 1.1); }catch(_){}
+      master.gain.linearRampToValueAtTime(0.30, t + 0.9);
     }
 
     setTimeout(() => {
       portal.classList.add("on");
+
+      // Start fading out audio so redirect doesn't feel like a chop.
+      // Do it near the end of the portal, but always leaving AUDIO_FADE_MS of fade time.
+      const fadeAt = Math.max(0, REDIRECT_AFTER - AUDIO_FADE_MS);
+      setTimeout(() => fadeOutAmbient(AUDIO_FADE_MS), fadeAt);
+
       setTimeout(() => {
+        // (Audio will still cut at navigation, but it will already be near silent.)
         window.location.href = SECRET_URL;
       }, REDIRECT_AFTER);
+
     }, PORTAL_DELAY);
   }
 
@@ -569,7 +595,6 @@
     sub.textContent = "The gate opens in reflection.";
   }
 
-  // Stronger motion score: mean absolute difference (0..255-ish)
   function motionScore(){
     if (!vid.videoWidth || !vid.videoHeight) return 999;
 
@@ -578,7 +603,7 @@
 
     if (!last){
       last = f;
-      return 999; // first frame
+      return 999;
     }
 
     const A = f.data;
@@ -587,14 +612,13 @@
     let sum = 0;
     let count = 0;
 
-    // sample every 3rd pixel for speed
     for (let i = 0; i < A.length; i += 12){
-      sum += Math.abs(A[i] - B[i]); // red channel enough (already grayscale-ish)
+      sum += Math.abs(A[i] - B[i]);
       count++;
     }
 
     last = f;
-    return sum / Math.max(1, count); // mean absolute diff per sampled pixel
+    return sum / Math.max(1, count);
   }
 
   let lastT = performance.now();
@@ -607,13 +631,11 @@
 
     const m = motionScore();
 
-    // HARD reset if they move
     if (m > MOVE_THRESH){
       stillMs = 0;
     } else if (m < STILL_THRESH){
       stillMs += dt;
     } else {
-      // in-between zone: don’t progress; mild decay
       stillMs = Math.max(0, stillMs - dt * 0.65);
     }
 
@@ -622,7 +644,6 @@
       else if (stillMs < 4500) hint.textContent = "Stay.";
       else if (stillMs < NEED) hint.textContent = "…";
       else {
-        // must be truly still at the exact moment
         if (m < FINISH_QUIET) beginPortal();
         else stillMs = 0;
       }
