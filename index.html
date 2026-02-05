@@ -43,7 +43,7 @@
 
     /* --- Atmosphere overlays --- */
 
-    /* Animated scanlines (less static) */
+    /* Animated scanlines */
     .scanlines{
       position:absolute; inset:0; pointer-events:none;
       background:repeating-linear-gradient(
@@ -84,7 +84,7 @@
       opacity:.96;
     }
 
-    /* Spiral sigil overlay (subtle + animated) */
+    /* Subtle spiral sigil overlay */
     .spiral{
       position:absolute; inset:-20%;
       pointer-events:none;
@@ -113,6 +113,72 @@
       100% { transform: rotate(360deg) scale(1.02); }
     }
 
+    /* --- Portal takeover overlay (NEW) --- */
+    .portal{
+      position:absolute; inset:0;
+      pointer-events:none;
+      opacity:0;
+      transform: scale(0.98);
+      transition: opacity 180ms ease;
+      z-index: 50; /* above everything */
+    }
+    .portal.on{
+      opacity:1;
+    }
+
+    .portal::before{
+      content:"";
+      position:absolute; inset:-25%;
+      background:
+        radial-gradient(circle at 50% 50%, rgba(255,255,255,.18), rgba(255,255,255,0) 36%),
+        conic-gradient(from 0deg,
+          rgba(255,255,255,.10),
+          rgba(255,255,255,0) 10%,
+          rgba(255,255,255,.08) 20%,
+          rgba(255,255,255,0) 30%,
+          rgba(255,255,255,.07) 40%,
+          rgba(255,255,255,0) 50%,
+          rgba(255,255,255,.06) 60%,
+          rgba(255,255,255,0) 70%,
+          rgba(255,255,255,.05) 80%,
+          rgba(255,255,255,0) 90%,
+          rgba(255,255,255,.04));
+      mix-blend-mode: screen;
+      filter: blur(0.6px);
+      mask-image: radial-gradient(circle at 50% 50%, rgba(0,0,0,1) 0%, rgba(0,0,0,1) 62%, rgba(0,0,0,0) 82%);
+      -webkit-mask-image: radial-gradient(circle at 50% 50%, rgba(0,0,0,1) 0%, rgba(0,0,0,1) 62%, rgba(0,0,0,0) 82%);
+      animation: portalSpin 680ms linear infinite;
+    }
+
+    .portal::after{
+      content:"";
+      position:absolute; inset:0;
+      background:
+        radial-gradient(circle at 50% 50%,
+          rgba(0,0,0,0) 0%,
+          rgba(0,0,0,.35) 55%,
+          rgba(0,0,0,.85) 100%);
+      opacity: .9;
+    }
+
+    /* “falling in” effect: scale up + rotate + slight blur pulse */
+    .portal.on{
+      animation: portalFall 1050ms cubic-bezier(.13,.84,.18,1) forwards;
+    }
+
+    @keyframes portalSpin{
+      from{ transform: rotate(0deg) scale(1.05); }
+      to  { transform: rotate(360deg) scale(1.05); }
+    }
+
+    @keyframes portalFall{
+      0%   { opacity:0; transform: scale(0.98) rotate(0deg); filter: blur(0px); }
+      12%  { opacity:1; transform: scale(1.02) rotate(8deg); filter: blur(0.2px); }
+      55%  { opacity:1; transform: scale(1.28) rotate(220deg); filter: blur(0.8px); }
+      85%  { opacity:1; transform: scale(1.75) rotate(430deg); filter: blur(1.4px); }
+      100% { opacity:1; transform: scale(2.15) rotate(560deg); filter: blur(2px); }
+    }
+
     /* HUD */
     .hud{
       position:absolute; inset:0;
@@ -120,6 +186,7 @@
       grid-template-rows:auto 1fr auto;
       padding:18px;
       pointer-events:none;
+      z-index: 10;
     }
 
     .topline{
@@ -219,6 +286,7 @@
       display:none;
     }
 
+    /* Fallback link is hidden (redirect is primary) */
     .reveal{
       display:none;
       margin-top:14px;
@@ -227,14 +295,6 @@
       background:rgba(0,0,0,.20);
       box-shadow:inset 0 0 0 1px rgba(255,255,255,.08);
     }
-
-    .reveal p{
-      font-size:13px;
-      color:rgba(233,237,242,.78);
-      margin:0 0 8px;
-      line-height:1.5;
-    }
-
     .reveal a{
       display:inline-block;
       padding:10px 14px;
@@ -265,6 +325,9 @@
     <div class="grain" aria-hidden="true"></div>
     <div class="vignette" aria-hidden="true"></div>
 
+    <!-- Portal takeover (NEW) -->
+    <div class="portal" id="portal" aria-hidden="true"></div>
+
     <div class="hud">
       <div class="topline">
         <div>SPIRAL IN</div>
@@ -273,9 +336,7 @@
 
       <div class="centerPrompt">
         <h1 class="title">Look inward.</h1>
-        <p class="sub" id="sub">
-          The gate opens in reflection.
-        </p>
+        <p class="sub" id="sub">The gate opens in reflection.</p>
 
         <div class="row">
           <button id="btnCamera">Enable Mirror</button>
@@ -286,8 +347,8 @@
         <div class="hintline" id="hint">Hold still. Do not blink.</div>
         <div class="error" id="err"></div>
 
+        <!-- hidden fallback (only if redirect gets blocked) -->
         <div class="reveal" id="reveal">
-          <p>Recognized.</p>
           <a id="fallbackLink" href="https://www.photonisdead.com/" target="_blank" rel="noopener noreferrer">Proceed</a>
         </div>
       </div>
@@ -318,10 +379,11 @@
   const dot      = document.getElementById("dot");
   const errEl    = document.getElementById("err");
 
-  const reveal = document.getElementById("reveal");
   const hint   = document.getElementById("hint");
   const sub    = document.getElementById("sub");
   const clock  = document.getElementById("clock");
+  const portal = document.getElementById("portal");
+  const reveal = document.getElementById("reveal");
   const fallbackLink = document.getElementById("fallbackLink");
 
   fallbackLink.href = SECRET_URL;
@@ -334,12 +396,10 @@
   let active = false;
 
   // VHS/CRT state
-  let tStart = performance.now();
   let trackingPhase = Math.random() * 1000;
   let glitchUntil = 0;
   let redirectScheduled = false;
 
-  // clock
   setInterval(() => {
     const d = new Date();
     clock.textContent =
@@ -375,11 +435,13 @@
 
   async function startCam(){
     clearError();
-    reveal.style.display = "none";
     presence = 0;
     lastFrame = null;
     active = false;
     redirectScheduled = false;
+
+    portal.classList.remove("on");
+    reveal.style.display = "none";
 
     btnTry.disabled = true;
     hint.textContent = "Permission requested.";
@@ -427,6 +489,8 @@
     lastFrame = null;
     redirectScheduled = false;
 
+    portal.classList.remove("on");
+
     btnStop.disabled = true;
     btnTry.disabled = false;
 
@@ -435,7 +499,6 @@
     hint.textContent = "Look inward.";
   }
 
-  // --- VHS/CRT draw pipeline ---
   function draw(){
     const w = fx.width, h = fx.height;
     const now = performance.now();
@@ -455,7 +518,7 @@
     ctx.drawImage(vid, 0, 0, w, h);
     ctx.restore();
 
-    // pixel grade + baked scanline feel + noise + tracking bar
+    // pixel grade + noise + tracking bar
     const img = ctx.getImageData(0,0,w,h);
     const d = img.data;
 
@@ -469,7 +532,7 @@
     const headShift = (Math.sin(now*0.022) * 10) + (Math.random()-0.5) * (glitching ? 14 : 7);
 
     for (let y=0; y<h; y++){
-      const scanDarken = (y % 3 === 0) ? 0.88 : 1.00; // stronger than before
+      const scanDarken = (y % 3 === 0) ? 0.88 : 1.00;
       const inHeadBand = (y > headBandY && y < headBandY + headBandH);
       const trackBoost = (Math.abs(y - barY) < barHalf) ? 1.16 : 1.0;
 
@@ -479,18 +542,15 @@
         const r = d[i], g = d[i+1], b = d[i+2];
         let yv = 0.2126*r + 0.7152*g + 0.0722*b;
 
-        // contrast + slight desat
         yv = (yv - 128) * 1.22 + 128;
 
         let rr = yv * 0.97;
         let gg = yv * 0.99;
         let bb = yv * 1.05;
 
-        // noise
         const n = (Math.random() - 0.5) * (glitching ? 18 : 12);
         rr += n; gg += n; bb += n;
 
-        // tracking bar + scanline
         rr *= trackBoost * scanDarken;
         gg *= trackBoost * scanDarken;
         bb *= trackBoost * scanDarken;
@@ -499,7 +559,6 @@
         d[i+1] = clamp(gg, 0, 255);
         d[i+2] = clamp(bb, 0, 255);
 
-        // head switching smear
         if (inHeadBand && x > 3){
           const j = i - 12;
           d[i]   = (d[i]   * 0.60 + d[j]   * 0.40);
@@ -528,7 +587,7 @@
       ctx.putImageData(hb, Math.floor(headShift), Math.floor(headBandY));
     }catch(_){}
 
-    // dark wash to keep text readable
+    // dark wash
     ctx.fillStyle = "rgba(0,0,0,0.10)";
     ctx.fillRect(0,0,w,h);
 
@@ -565,23 +624,25 @@
     }catch(_){}
   }
 
-  function scheduleRedirect(){
+  function portalThenRedirect(){
     if (redirectScheduled) return;
     redirectScheduled = true;
 
-    // Give them a tiny “moment” before the jump
-    reveal.style.display = "block";
+    // portal takes over
+    portal.classList.add("on");
     sub.textContent = "Recognized.";
-    hint.textContent = "Entering.";
+    hint.textContent = "Falling inward.";
 
-    // Attempt auto-redirect; keep fallback visible if blocked
+    // stop analyzing/looping so the moment feels final
+    active = false;
+
+    // In case the browser blocks auto nav, show fallback silently
+    reveal.style.display = "block";
+
+    // Redirect after the portal animation hits peak
     setTimeout(() => {
-      try{
-        window.location.assign(SECRET_URL);
-      }catch(_){
-        // fallback link remains
-      }
-    }, 650);
+      window.location.href = SECRET_URL;
+    }, 1100);
   }
 
   function loop(){
@@ -591,9 +652,13 @@
     analyze();
 
     if (active && presence > 85){
-      active = false;
       setStatus("Gate open", true);
-      scheduleRedirect();
+      portalThenRedirect();
+      // we can keep drawing a couple frames or just stop:
+      // stop camera to freeze/commit the moment
+      try { stream.getTracks().forEach(t => t.stop()); } catch(_){}
+      stream = null;
+      return;
     }
 
     raf = requestAnimationFrame(loop);
