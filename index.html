@@ -189,7 +189,7 @@
 
   .portal.on{
     opacity:1;
-    animation: fall 5200ms cubic-bezier(.10,.92,.16,1) forwards;
+    animation: fall 5600ms cubic-bezier(.10,.92,.16,1) forwards;
   }
 
   .portal::before{
@@ -201,12 +201,12 @@
         #fff 0px,
         #fff 7px,
         #000 7px,
-        #000 20px);
+        #000 22px);
     transform-origin: 50% 50%;
     animation:
-      slowSpin 30000ms linear infinite,
-      slowBreath 7200ms ease-in-out infinite;
-    filter: contrast(1.25);
+      slowSpin 42000ms linear infinite,
+      slowBreath 8200ms ease-in-out infinite;
+    filter: contrast(1.22);
     mask-image: radial-gradient(circle,#000 0%,#000 72%,transparent 90%);
     -webkit-mask-image: radial-gradient(circle,#000 0%,#000 72%,transparent 90%);
   }
@@ -222,21 +222,21 @@
   }
 
   @keyframes slowSpin{
-    from{ transform: rotate(0deg) scale(0.94); }
-    to  { transform: rotate(360deg) scale(1.08); }
+    from{ transform: rotate(0deg) scale(0.95); }
+    to  { transform: rotate(360deg) scale(1.06); }
   }
 
   @keyframes slowBreath{
-    0%   { filter: contrast(1.15) brightness(1.00); }
-    50%  { filter: contrast(1.30) brightness(1.04); }
-    100% { filter: contrast(1.15) brightness(1.00); }
+    0%   { filter: contrast(1.12) brightness(1.00); }
+    50%  { filter: contrast(1.28) brightness(1.04); }
+    100% { filter: contrast(1.12) brightness(1.00); }
   }
 
   @keyframes fall{
     0%   { transform: scale(1.0); filter: blur(0px); }
-    28%  { transform: scale(1.06); filter: blur(0.18px); }
-    62%  { transform: scale(1.22); filter: blur(0.55px); }
-    100% { transform: scale(2.00); filter: blur(1.20px); }
+    30%  { transform: scale(1.05); filter: blur(0.20px); }
+    65%  { transform: scale(1.18); filter: blur(0.55px); }
+    100% { transform: scale(2.00); filter: blur(1.25px); }
   }
 
   /* ===== Coward “page” ===== */
@@ -322,7 +322,6 @@
 
     <div class="portal" id="portal"></div>
 
-    <!-- Coward route/page -->
     <div class="cowardPage" id="cowardPage">
       <div class="cowardInner">
         <h2>COWARD</h2>
@@ -333,8 +332,7 @@
 
     <div class="hud">
       <div class="top">
-        <div class="instruction" id="instruction">HOLD STILL, BE PRESENT</div>
-
+        <div class="instruction">HOLD STILL, BE PRESENT</div>
         <div class="topRight">
           <div class="clock" id="clock">—</div>
           <button class="stopTop" id="stopTop" disabled>Stop</button>
@@ -344,11 +342,9 @@
       <div class="center">
         <h1>Spiral in.</h1>
         <p id="sub">The gate opens in reflection.</p>
-
         <div class="row">
           <button id="start">Enable Mirror</button>
         </div>
-
         <div class="hint" id="hint">Hold still.</div>
       </div>
 
@@ -373,71 +369,66 @@
   const statusEl = document.getElementById("status");
   const portal = document.getElementById("portal");
   const clock = document.getElementById("clock");
-
   const backBtn = document.getElementById("backBtn");
 
   let stream = null;
   let raf = null;
 
-  // Motion detection canvas (tiny, stable)
+  // ===== Motion detection (stronger metric) =====
   const mCan = document.createElement("canvas");
   mCan.width = 96;
   mCan.height = 54;
   const mCtx = mCan.getContext("2d", { willReadFrequently: true });
 
   let last = null;
-  let still = 0;
+  let stillMs = 0;
   let triggered = false;
 
-  // Stillness settings
-  const NEED = 7000;      // ms (7 seconds)
-  const THRESH = 5.0;     // stricter threshold (lower = stricter)
-  const QUIET_NOW = 2.5;  // must be currently still at unlock moment
+  // Must be still for 7 seconds
+  const NEED = 7000;
+
+  // Hysteresis thresholds (THIS is the fix)
+  // - below STILL_THRESH counts
+  // - above MOVE_THRESH resets to zero immediately
+  const STILL_THRESH = 6.0;   // lower = stricter
+  const MOVE_THRESH  = 12.0;  // hard reset when you move
+  const FINISH_QUIET  = 6.0;  // must be in the “still” zone at unlock moment
 
   const PORTAL_DELAY = 240;
-  const REDIRECT_AFTER = 5200;
+  const REDIRECT_AFTER = 5600;
 
-  // ===== Ambient sound (procedural, no files) =====
-  // Subtle “breathing drone” + faint shimmer. Starts only after user gesture.
-  let audioCtx = null;
-  let master = null;
-  let droneOsc = null;
-  let shimmerOsc = null;
-  let lfo = null;
-  let lfoGain = null;
+  // ===== Ambient sound (procedural) =====
+  let audioCtx = null, master = null;
+  let droneOsc = null, shimmerOsc = null, lfo = null, lfoGain = null;
 
   function startAmbient(){
     if (audioCtx) return;
-
     audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 
     master = audioCtx.createGain();
     master.gain.value = 0.0;
     master.connect(audioCtx.destination);
 
-    // Drone: low sine
     droneOsc = audioCtx.createOscillator();
     droneOsc.type = "sine";
-    droneOsc.frequency.value = 48; // low fundamental
+    droneOsc.frequency.value = 46;
 
     const droneGain = audioCtx.createGain();
-    droneGain.gain.value = 0.26;
+    droneGain.gain.value = 0.28;
 
-    // Shimmer: very quiet triangle above
     shimmerOsc = audioCtx.createOscillator();
     shimmerOsc.type = "triangle";
-    shimmerOsc.frequency.value = 192;
+    shimmerOsc.frequency.value = 176;
 
     const shimmerGain = audioCtx.createGain();
-    shimmerGain.gain.value = 0.05;
+    shimmerGain.gain.value = 0.045;
 
-    // Gentle LFO to make it “breathe”
     lfo = audioCtx.createOscillator();
     lfo.type = "sine";
-    lfo.frequency.value = 0.07; // slow
+    lfo.frequency.value = 0.06;
 
     lfoGain = audioCtx.createGain();
-    lfoGain.gain.value = 10; // mod depth in Hz
+    lfoGain.gain.value = 9.5;
 
     lfo.connect(lfoGain);
     lfoGain.connect(droneOsc.frequency);
@@ -452,29 +443,22 @@
     shimmerOsc.start();
     lfo.start();
 
-    // fade in
     master.gain.setValueAtTime(0.0, audioCtx.currentTime);
-    master.gain.linearRampToValueAtTime(0.16, audioCtx.currentTime + 1.2);
+    master.gain.linearRampToValueAtTime(0.22, audioCtx.currentTime + 1.2);
   }
 
   function stopAmbient(){
     if (!audioCtx) return;
-
-    // fade out then stop
     const t = audioCtx.currentTime;
     master.gain.cancelScheduledValues(t);
     master.gain.setValueAtTime(master.gain.value, t);
     master.gain.linearRampToValueAtTime(0.0, t + 0.6);
 
     setTimeout(() => {
-      try{
-        droneOsc?.stop();
-        shimmerOsc?.stop();
-        lfo?.stop();
-      }catch(_){}
+      try{ droneOsc?.stop(); shimmerOsc?.stop(); lfo?.stop(); }catch(_){}
       audioCtx.close().catch(()=>{});
-      audioCtx = null;
-      master = droneOsc = shimmerOsc = lfo = lfoGain = null;
+      audioCtx = null; master = null;
+      droneOsc = null; shimmerOsc = null; lfo = null; lfoGain = null;
     }, 650);
   }
 
@@ -491,7 +475,7 @@
   function resetGate(){
     portal.classList.remove("on");
     triggered = false;
-    still = 0;
+    stillMs = 0;
     last = null;
   }
 
@@ -502,14 +486,12 @@
     hint.textContent = "Falling inward.";
     sub.textContent = "Recognized.";
 
-    // deepen audio slightly during portal
     if (audioCtx && master){
       const t = audioCtx.currentTime;
       master.gain.cancelScheduledValues(t);
       master.gain.setValueAtTime(master.gain.value, t);
-      master.gain.linearRampToValueAtTime(0.22, t + 1.2);
-      // slow shimmer a touch
-      try{ shimmerOsc.frequency.setTargetAtTime(168, t, 0.9); }catch(_){}
+      master.gain.linearRampToValueAtTime(0.30, t + 1.2);
+      try{ shimmerOsc.frequency.setTargetAtTime(160, t, 1.1); }catch(_){}
     }
 
     setTimeout(() => {
@@ -522,14 +504,12 @@
 
   async function startCam(){
     if (location.hash === "#coward") location.hash = "";
-
     resetGate();
     document.body.classList.remove("coward");
     document.body.classList.remove("mirroring");
 
     try{
-      // must be called after a user gesture to satisfy autoplay policies
-      startAmbient();
+      startAmbient(); // must be after click
 
       stream = await navigator.mediaDevices.getUserMedia({ video:true, audio:false });
       vid.srcObject = stream;
@@ -589,26 +569,32 @@
     sub.textContent = "The gate opens in reflection.";
   }
 
+  // Stronger motion score: mean absolute difference (0..255-ish)
   function motionScore(){
     if (!vid.videoWidth || !vid.videoHeight) return 999;
 
     mCtx.drawImage(vid, 0, 0, mCan.width, mCan.height);
     const f = mCtx.getImageData(0, 0, mCan.width, mCan.height);
-    let s = 0;
 
-    if (last){
-      const A = f.data;
-      const B = last.data;
-      for (let i = 0; i < A.length; i += 8){
-        const y1 = A[i];
-        const y0 = B[i];
-        s += Math.abs(y1 - y0);
-      }
-      s = s / (mCan.width * mCan.height) / 2.6;
+    if (!last){
+      last = f;
+      return 999; // first frame
+    }
+
+    const A = f.data;
+    const B = last.data;
+
+    let sum = 0;
+    let count = 0;
+
+    // sample every 3rd pixel for speed
+    for (let i = 0; i < A.length; i += 12){
+      sum += Math.abs(A[i] - B[i]); // red channel enough (already grayscale-ish)
+      count++;
     }
 
     last = f;
-    return s;
+    return sum / Math.max(1, count); // mean absolute diff per sampled pixel
   }
 
   let lastT = performance.now();
@@ -621,20 +607,24 @@
 
     const m = motionScore();
 
-    if (m < THRESH){
-      still += dt;
+    // HARD reset if they move
+    if (m > MOVE_THRESH){
+      stillMs = 0;
+    } else if (m < STILL_THRESH){
+      stillMs += dt;
     } else {
-      still = Math.max(0, still - dt * 2.8);
+      // in-between zone: don’t progress; mild decay
+      stillMs = Math.max(0, stillMs - dt * 0.65);
     }
 
     if (!triggered){
-      if (still < 2000) hint.textContent = "Hold still. Be present.";
-      else if (still < 4500) hint.textContent = "Stay.";
-      else if (still < NEED) hint.textContent = "…";
+      if (stillMs < 2000) hint.textContent = "Hold still. Be present.";
+      else if (stillMs < 4500) hint.textContent = "Stay.";
+      else if (stillMs < NEED) hint.textContent = "…";
       else {
-        // Only trigger if they're also currently still right now
-        if (m < QUIET_NOW) beginPortal();
-        else still = Math.max(0, still - 700);
+        // must be truly still at the exact moment
+        if (m < FINISH_QUIET) beginPortal();
+        else stillMs = 0;
       }
     }
 
