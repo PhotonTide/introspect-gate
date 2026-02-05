@@ -15,14 +15,17 @@
     }
 
     html,body{
-      height:100%;margin:0;background:var(--bg);color:var(--fg);overflow:hidden;
+      height:100%; margin:0; background:var(--bg); color:var(--fg); overflow:hidden;
       font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial;
     }
 
-    .wrap{height:100%;display:grid;place-items:center}
+    .wrap{ height:100%; display:grid; place-items:center; }
 
     .stage{
-      position:relative;width:min(92vw,900px);aspect-ratio:16/9;border-radius:18px;
+      position:relative;
+      width:min(92vw,900px);
+      aspect-ratio:16/9;
+      border-radius:18px;
       overflow:hidden;
       background:
         radial-gradient(1200px 600px at 50% 40%, rgba(255,255,255,.06), transparent 60%),
@@ -33,138 +36,220 @@
     }
 
     video,canvas{
-      position:absolute;inset:0;width:100%;height:100%;
-      object-fit:cover;transform:scaleX(-1);
+      position:absolute; inset:0; width:100%; height:100%;
+      object-fit:cover;
+      transform:scaleX(-1);
     }
 
-    /* Overlays (static) */
+    /* --- Atmosphere overlays --- */
+
+    /* Animated scanlines (less static) */
     .scanlines{
-      position:absolute;inset:0;pointer-events:none;
+      position:absolute; inset:0; pointer-events:none;
       background:repeating-linear-gradient(
         to bottom,
         rgba(0,0,0,0),
         rgba(0,0,0,0) 2px,
-        rgba(0,0,0,.18) 3px);
+        rgba(0,0,0,.20) 3px);
       opacity:.55;
       mix-blend-mode:multiply;
+      animation: scanMove 1.2s linear infinite;
+    }
+    @keyframes scanMove{
+      0%   { transform: translateY(0); }
+      100% { transform: translateY(3px); }
+    }
+
+    /* drifting grain */
+    .grain{
+      position:absolute; inset:-20%; pointer-events:none;
+      background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2'/%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23n)' opacity='.35'/%3E%3C/svg%3E");
+      opacity:.22;
+      mix-blend-mode:overlay;
+      animation: grainDrift 4.8s linear infinite;
+      transform: rotate(1deg);
+    }
+    @keyframes grainDrift{
+      0%   { transform: translate(-2%,-1%) rotate(1deg); }
+      50%  { transform: translate(1%,2%) rotate(1deg); }
+      100% { transform: translate(-2%,-1%) rotate(1deg); }
     }
 
     .vignette{
-      position:absolute;inset:0;pointer-events:none;
+      position:absolute; inset:0; pointer-events:none;
       background:radial-gradient(circle at 50% 45%,
         rgba(0,0,0,.05) 0%,
-        rgba(0,0,0,.25) 55%,
-        rgba(0,0,0,.70) 100%);
-      opacity:.95;
+        rgba(0,0,0,.28) 55%,
+        rgba(0,0,0,.75) 100%);
+      opacity:.96;
     }
 
-    .grain{
-      position:absolute;inset:-20%;pointer-events:none;
-      background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)' opacity='.35'/%3E%3C/svg%3E");
-      opacity:.22;
-      mix-blend-mode:overlay;
-      animation:drift 6s linear infinite;
-      transform:rotate(1deg);
+    /* Spiral sigil overlay (subtle + animated) */
+    .spiral{
+      position:absolute; inset:-20%;
+      pointer-events:none;
+      opacity:.18;
+      mix-blend-mode:screen;
+      filter: blur(0.2px);
+      animation: spiralTurn 18s linear infinite;
+      transform-origin: 50% 50%;
+      background:
+        radial-gradient(circle at 50% 50%, rgba(255,255,255,.10), transparent 55%),
+        conic-gradient(from 90deg,
+          rgba(255,255,255,.08),
+          rgba(255,255,255,0) 12%,
+          rgba(255,255,255,.06) 24%,
+          rgba(255,255,255,0) 36%,
+          rgba(255,255,255,.05) 48%,
+          rgba(255,255,255,0) 60%,
+          rgba(255,255,255,.04) 72%,
+          rgba(255,255,255,0) 84%,
+          rgba(255,255,255,.03));
+      mask-image: radial-gradient(circle at 50% 50%, rgba(0,0,0,1) 0%, rgba(0,0,0,.9) 55%, rgba(0,0,0,0) 78%);
+      -webkit-mask-image: radial-gradient(circle at 50% 50%, rgba(0,0,0,1) 0%, rgba(0,0,0,.9) 55%, rgba(0,0,0,0) 78%);
+    }
+    @keyframes spiralTurn{
+      0%   { transform: rotate(0deg) scale(1.02); }
+      100% { transform: rotate(360deg) scale(1.02); }
     }
 
-    @keyframes drift{
-      0%{transform:translate(-2%,-1%) rotate(1deg)}
-      50%{transform:translate(1%,2%) rotate(1deg)}
-      100%{transform:translate(-2%,-1%) rotate(1deg)}
-    }
-
+    /* HUD */
     .hud{
-      position:absolute;inset:0;
-      display:grid;grid-template-rows:auto 1fr auto;
-      padding:18px;pointer-events:none;
+      position:absolute; inset:0;
+      display:grid;
+      grid-template-rows:auto 1fr auto;
+      padding:18px;
+      pointer-events:none;
     }
 
     .topline{
-      display:flex;justify-content:space-between;
-      text-transform:uppercase;font-size:12px;
-      letter-spacing:.14em;color:var(--faint);
+      display:flex;
+      justify-content:space-between;
+      text-transform:uppercase;
+      font-size:12px;
+      letter-spacing:.16em;
+      color:var(--faint);
       user-select:none;
     }
 
     .centerPrompt{
-      align-self:center;justify-self:center;
-      background:rgba(0,0,0,.25);
-      padding:22px 20px;border-radius:16px;
-      text-align:center;max-width:620px;
-      box-shadow:inset 0 0 0 1px rgba(255,255,255,.08);
+      align-self:center;
+      justify-self:center;
+      background:rgba(0,0,0,.18);
+      padding:22px 20px;
+      border-radius:16px;
+      text-align:center;
+      max-width:620px;
+      box-shadow:inset 0 0 0 1px rgba(255,255,255,.07);
       pointer-events:auto;
-      backdrop-filter: blur(8px);
+      backdrop-filter: blur(10px);
     }
 
     .title{
-      margin:0 0 12px;
+      margin:0 0 10px;
       font-size:clamp(18px,3vw,26px);
-      letter-spacing:.14em;text-transform:uppercase;
+      letter-spacing:.18em;
+      text-transform:uppercase;
     }
 
-    .sub{color:var(--muted);font-size:14px;margin-bottom:16px}
+    .sub{
+      color:rgba(233,237,242,.62);
+      font-size:13px;
+      margin:0 0 16px;
+      line-height:1.5;
+      letter-spacing:.02em;
+    }
 
-    .row{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
+    .row{
+      display:flex;
+      gap:10px;
+      justify-content:center;
+      flex-wrap:wrap;
+      margin-top:2px;
+    }
 
     button{
-      border:0;border-radius:999px;
+      border:0;
+      border-radius:999px;
       padding:10px 14px;
-      background:rgba(233,237,242,.12);
-      color:#fff;font-size:12px;
-      letter-spacing:.1em;text-transform:uppercase;
+      background:rgba(233,237,242,.10);
+      color:#fff;
+      font-size:12px;
+      letter-spacing:.12em;
+      text-transform:uppercase;
       cursor:pointer;
       box-shadow:inset 0 0 0 1px rgba(255,255,255,.10);
     }
+    button:hover{ background:rgba(233,237,242,.14); }
+    button[disabled]{ opacity:.35; cursor:not-allowed; }
 
-    button:hover{background:rgba(233,237,242,.16)}
-    button[disabled]{opacity:.35}
-
-    .hintline{margin-top:12px;font-size:12px;color:rgba(233,237,242,.6)}
+    .hintline{
+      margin-top:12px;
+      font-size:12px;
+      color:rgba(233,237,242,.55);
+      letter-spacing:.04em;
+      user-select:none;
+    }
 
     .bottom{
-      display:flex;justify-content:space-between;
-      font-size:11px;text-transform:uppercase;
+      display:flex;
+      justify-content:space-between;
+      font-size:11px;
+      text-transform:uppercase;
       color:var(--faint);
       user-select:none;
     }
 
     .statusDot{
-      width:8px;height:8px;border-radius:50%;
+      width:8px; height:8px; border-radius:50%;
       background:rgba(255,255,255,.2);
-      display:inline-block;margin-right:6px;
+      display:inline-block;
+      margin-right:6px;
       box-shadow:0 0 0 2px rgba(255,255,255,.06);
     }
-
     .statusDot.on{
       background:var(--ok);
       box-shadow:0 0 0 2px rgba(120,255,180,.12), 0 0 18px rgba(120,255,180,.18);
     }
 
     .error{
-      margin-top:10px;font-size:12px;
-      color:var(--danger);display:none;
+      margin-top:10px;
+      font-size:12px;
+      color:var(--danger);
+      display:none;
     }
 
     .reveal{
-      display:none;margin-top:14px;
-      padding:12px;border-radius:14px;
-      background:rgba(0,0,0,.25);
+      display:none;
+      margin-top:14px;
+      padding:12px;
+      border-radius:14px;
+      background:rgba(0,0,0,.20);
       box-shadow:inset 0 0 0 1px rgba(255,255,255,.08);
     }
 
-    .reveal p{font-size:13px;color:rgba(233,237,242,.8);margin:0 0 8px}
+    .reveal p{
+      font-size:13px;
+      color:rgba(233,237,242,.78);
+      margin:0 0 8px;
+      line-height:1.5;
+    }
 
     .reveal a{
       display:inline-block;
-      padding:10px 14px;border-radius:999px;
-      background:rgba(233,237,242,.15);
-      color:#fff;text-decoration:none;
-      letter-spacing:.1em;font-size:12px;
+      padding:10px 14px;
+      border-radius:999px;
+      background:rgba(233,237,242,.14);
+      color:#fff;
+      text-decoration:none;
+      letter-spacing:.12em;
+      font-size:12px;
+      text-transform:uppercase;
       box-shadow:inset 0 0 0 1px rgba(255,255,255,.10);
     }
 
     @media(max-width:520px){
-      .stage{aspect-ratio:9/16}
+      .stage{ aspect-ratio:9/16; }
     }
   </style>
 </head>
@@ -175,9 +260,10 @@
     <video id="vid" autoplay muted playsinline></video>
     <canvas id="fx"></canvas>
 
-    <div class="scanlines"></div>
-    <div class="grain"></div>
-    <div class="vignette"></div>
+    <div class="spiral" aria-hidden="true"></div>
+    <div class="scanlines" aria-hidden="true"></div>
+    <div class="grain" aria-hidden="true"></div>
+    <div class="vignette" aria-hidden="true"></div>
 
     <div class="hud">
       <div class="topline">
@@ -187,7 +273,9 @@
 
       <div class="centerPrompt">
         <h1 class="title">Look inward.</h1>
-        <p class="sub">The gate opens in reflection.</p>
+        <p class="sub" id="sub">
+          The gate opens in reflection.
+        </p>
 
         <div class="row">
           <button id="btnCamera">Enable Mirror</button>
@@ -195,12 +283,12 @@
           <button id="btnStop" disabled>Stop</button>
         </div>
 
-        <div class="hintline" id="hint">Hold still. The system is watching.</div>
+        <div class="hintline" id="hint">Hold still. Do not blink.</div>
         <div class="error" id="err"></div>
 
         <div class="reveal" id="reveal">
-          <p>You are here. You are the witness.</p>
-          <a href="https://www.photonisdead.com/" target="_blank" rel="noopener noreferrer">Unlock</a>
+          <p>Recognized.</p>
+          <a id="fallbackLink" href="https://www.photonisdead.com/" target="_blank" rel="noopener noreferrer">Proceed</a>
         </div>
       </div>
 
@@ -209,13 +297,15 @@
           <span class="statusDot" id="dot"></span>
           <span id="status">Mirror idle</span>
         </div>
-        <div id="tech">VHS/CRT</div>
+        <div><!-- intentionally blank --></div>
       </div>
     </div>
   </div>
 </div>
 
 <script>
+  const SECRET_URL = "https://www.photonisdead.com/";
+
   const vid = document.getElementById("vid");
   const fx  = document.getElementById("fx");
   const ctx = fx.getContext("2d", { willReadFrequently: true });
@@ -230,7 +320,11 @@
 
   const reveal = document.getElementById("reveal");
   const hint   = document.getElementById("hint");
+  const sub    = document.getElementById("sub");
   const clock  = document.getElementById("clock");
+  const fallbackLink = document.getElementById("fallbackLink");
+
+  fallbackLink.href = SECRET_URL;
 
   let stream = null;
   let raf = null;
@@ -239,11 +333,13 @@
   let lastFrame = null;
   let active = false;
 
-  // VHS state
-  let t0 = performance.now();
+  // VHS/CRT state
+  let tStart = performance.now();
   let trackingPhase = Math.random() * 1000;
   let glitchUntil = 0;
+  let redirectScheduled = false;
 
+  // clock
   setInterval(() => {
     const d = new Date();
     clock.textContent =
@@ -283,9 +379,11 @@
     presence = 0;
     lastFrame = null;
     active = false;
+    redirectScheduled = false;
 
     btnTry.disabled = true;
-    hint.textContent = "Permission requested. Choose reflection.";
+    hint.textContent = "Permission requested.";
+    sub.textContent = "The gate opens in reflection.";
 
     try{
       stream = await navigator.mediaDevices.getUserMedia({
@@ -303,7 +401,6 @@
 
       active = true;
       hint.textContent = "Hold still. Become present.";
-
       loop();
     }catch(e){
       stream = null;
@@ -311,8 +408,9 @@
       btnTry.disabled = false;
 
       setStatus("Mirror denied", false);
-      showError("Reflection required. Try again.");
-      hint.textContent = "The answer is not outside.";
+      showError("Reflection required.");
+      hint.textContent = "Try again.";
+      sub.textContent = "The answer is not outside.";
     }
   }
 
@@ -327,6 +425,7 @@
     active = false;
     presence = 0;
     lastFrame = null;
+    redirectScheduled = false;
 
     btnStop.disabled = true;
     btnTry.disabled = false;
@@ -340,61 +439,58 @@
   function draw(){
     const w = fx.width, h = fx.height;
     const now = performance.now();
-    const dt = now - t0;
-    t0 = now;
 
     // occasional glitch burst
-    if (Math.random() < 0.02) glitchUntil = now + 220 + Math.random()*180;
+    if (Math.random() < 0.02) glitchUntil = now + 240 + Math.random()*220;
+    const glitching = now < glitchUntil;
 
-    // base wobble (subtle)
-    const wobble = Math.sin((now + trackingPhase) * 0.003) * 1.3;
+    // subtle continuous wobble + micro jitter
+    const wobble = Math.sin((now + trackingPhase) * 0.0032) * 1.8;
+    const jitter = (Math.random() - 0.5) * (glitching ? 2.8 : 1.2);
 
     ctx.save();
     ctx.clearRect(0,0,w,h);
 
-    // draw video
-    ctx.translate(wobble, 0);
+    ctx.translate(wobble + jitter, 0);
     ctx.drawImage(vid, 0, 0, w, h);
     ctx.restore();
 
-    // get pixels for grading + scanline/noise (VHS feel)
+    // pixel grade + baked scanline feel + noise + tracking bar
     const img = ctx.getImageData(0,0,w,h);
     const d = img.data;
 
-    // moving tracking bar position (roll)
-    const barY = ( (now*0.08 + trackingPhase*40) % (h + 220) ) - 110;
-    const barHalf = 22;
+    // rolling tracking bar
+    const barY = (((now*0.10) + trackingPhase*33) % (h + 240)) - 120;
+    const barHalf = 26;
 
-    // mild “head switching” horizontal jitter band near bottom
-    const headBandY = h * 0.88;
-    const headBandH = Math.max(10, Math.floor(h * 0.06));
-    const headShift = (Math.sin(now*0.02) * 8) + (Math.random()-0.5) * 6;
+    // head switching band near bottom
+    const headBandY = h * 0.87;
+    const headBandH = Math.max(12, Math.floor(h * 0.075));
+    const headShift = (Math.sin(now*0.022) * 10) + (Math.random()-0.5) * (glitching ? 14 : 7);
 
-    // pixel loop
     for (let y=0; y<h; y++){
-      const scanDarken = (y % 3 === 0) ? 0.90 : 1.00; // subtle scanline baked in
+      const scanDarken = (y % 3 === 0) ? 0.88 : 1.00; // stronger than before
       const inHeadBand = (y > headBandY && y < headBandY + headBandH);
-      const trackBoost = (Math.abs(y - barY) < barHalf) ? 1.12 : 1.0;
+      const trackBoost = (Math.abs(y - barY) < barHalf) ? 1.16 : 1.0;
 
       for (let x=0; x<w; x++){
         const i = (y*w + x) * 4;
 
-        // base luma
         const r = d[i], g = d[i+1], b = d[i+2];
         let yv = 0.2126*r + 0.7152*g + 0.0722*b;
 
-        // CRT-ish contrast curve + cool tint
-        yv = (yv - 128) * 1.18 + 128;
+        // contrast + slight desat
+        yv = (yv - 128) * 1.22 + 128;
 
-        let rr = yv * 0.98;
-        let gg = yv * 1.00;
+        let rr = yv * 0.97;
+        let gg = yv * 0.99;
         let bb = yv * 1.05;
 
-        // VHS noise (light)
-        const n = (Math.random() - 0.5) * 10;
+        // noise
+        const n = (Math.random() - 0.5) * (glitching ? 18 : 12);
         rr += n; gg += n; bb += n;
 
-        // tracking bar brightening + scanline darken
+        // tracking bar + scanline
         rr *= trackBoost * scanDarken;
         gg *= trackBoost * scanDarken;
         bb *= trackBoost * scanDarken;
@@ -403,52 +499,52 @@
         d[i+1] = clamp(gg, 0, 255);
         d[i+2] = clamp(bb, 0, 255);
 
-        // head switching: smear in the band by mixing with a nearby pixel
-        if (inHeadBand && x > 2){
-          const j = i - 8; // previous pixel
-          d[i]   = (d[i]   * 0.65 + d[j]   * 0.35);
-          d[i+1] = (d[i+1] * 0.65 + d[j+1] * 0.35);
-          d[i+2] = (d[i+2] * 0.65 + d[j+2] * 0.35);
+        // head switching smear
+        if (inHeadBand && x > 3){
+          const j = i - 12;
+          d[i]   = (d[i]   * 0.60 + d[j]   * 0.40);
+          d[i+1] = (d[i+1] * 0.60 + d[j+1] * 0.40);
+          d[i+2] = (d[i+2] * 0.60 + d[j+2] * 0.40);
         }
       }
     }
 
     ctx.putImageData(img, 0, 0);
 
-    // glitch band shift (stronger during glitch burst)
-    const glitching = now < glitchUntil;
-    if (glitching || Math.random() < 0.06){
+    // glitch band shift
+    if (glitching || Math.random() < 0.07){
       const gy = Math.floor(Math.random() * h);
-      const gh = Math.floor(6 + Math.random() * 18);
-      const shift = Math.floor((Math.random()-0.5) * (glitching ? 80 : 35));
+      const gh = Math.floor(8 + Math.random() * 22);
+      const shift = Math.floor((Math.random()-0.5) * (glitching ? 110 : 45));
       try{
         const band = ctx.getImageData(0, gy, w, gh);
         ctx.putImageData(band, shift, gy);
       }catch(_){}
     }
 
-    // head-switching band shift near bottom
+    // head band shift near bottom
     try{
       const hb = ctx.getImageData(0, Math.floor(headBandY), w, headBandH);
       ctx.putImageData(hb, Math.floor(headShift), Math.floor(headBandY));
     }catch(_){}
 
-    // subtle overlay dark wash
-    ctx.fillStyle = "rgba(0,0,0,0.08)";
+    // dark wash to keep text readable
+    ctx.fillStyle = "rgba(0,0,0,0.10)";
     ctx.fillRect(0,0,w,h);
 
-    // emergent text as score rises
+    // emergent text
     if (active){
       ctx.save();
-      ctx.globalAlpha = 0.10 + 0.16*(presence/100);
+      ctx.globalAlpha = 0.08 + 0.18*(presence/100);
       ctx.fillStyle = "#fff";
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
       ctx.font = `${Math.floor(w*0.030)}px system-ui`;
       ctx.fillText("YOU ARE WATCHING YOURSELF", w/2, h*0.60);
+
+      ctx.globalAlpha = 0.08 + 0.22*(presence/100);
       ctx.font = `${Math.floor(w*0.022)}px system-ui`;
-      ctx.globalAlpha = 0.10 + 0.18*(presence/100);
-      ctx.fillText("…BE STILL", w/2, h*0.68);
+      ctx.fillText("…KEEP GOING", w/2, h*0.68);
       ctx.restore();
     }
   }
@@ -463,10 +559,29 @@
           diff += Math.abs(f.data[i] - lastFrame.data[i]);
         }
         const still = clamp(1 - diff/90000, 0, 1);
-        presence = clamp(presence + still*1.8 - (1-still)*2.0, 0, 120);
+        presence = clamp(presence + still*1.9 - (1-still)*2.0, 0, 120);
       }
       lastFrame = f;
     }catch(_){}
+  }
+
+  function scheduleRedirect(){
+    if (redirectScheduled) return;
+    redirectScheduled = true;
+
+    // Give them a tiny “moment” before the jump
+    reveal.style.display = "block";
+    sub.textContent = "Recognized.";
+    hint.textContent = "Entering.";
+
+    // Attempt auto-redirect; keep fallback visible if blocked
+    setTimeout(() => {
+      try{
+        window.location.assign(SECRET_URL);
+      }catch(_){
+        // fallback link remains
+      }
+    }, 650);
   }
 
   function loop(){
@@ -477,9 +592,8 @@
 
     if (active && presence > 85){
       active = false;
-      reveal.style.display = "block";
       setStatus("Gate open", true);
-      hint.textContent = "The system recognizes you.";
+      scheduleRedirect();
     }
 
     raf = requestAnimationFrame(loop);
