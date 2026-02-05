@@ -645,6 +645,328 @@
   document.addEventListener("visibilitychange",()=>{
     if(document.hidden) stopCam();
   });
+<script>
+  const SECRET_URL = "https://www.photonisdead.com/";
+
+  const vid = document.getElementById("vid");
+  const fx  = document.getElementById("fx");
+  const ctx = fx.getContext("2d", { willReadFrequently: true });
+
+  const btnCamera = document.getElementById("btnCamera");
+  const btnTry    = document.getElementById("btnTry");
+  const btnStop   = document.getElementById("btnStop");
+
+  const statusEl = document.getElementById("status");
+  const dot      = document.getElementById("dot");
+  const errEl    = document.getElementById("err");
+
+  const hint   = document.getElementById("hint");
+  const sub    = document.getElementById("sub");
+  const clock  = document.getElementById("clock");
+  const portal = document.getElementById("portal");
+
+  let stream = null;
+  let raf = null;
+
+  // ===== Stillness detection (RAW video, separate canvas) =====
+  const motionCanvas = document.createElement("canvas");
+  const mW = 80, mH = 45;          // low-res sample
+  motionCanvas.width = mW;
+  motionCanvas.height = mH;
+  const mCtx = motionCanvas.getContext("2d", { willReadFrequently: true });
+
+  let lastMotionFrame = null;
+  let stillMs = 0;
+  let portalArmed = false;
+  let tRedirect = null;
+
+  // Tuning knobs
+  const REQUIRED_STILL_MS = 2600;   // 2–3 seconds
+  const MOTION_THRESHOLD  = 8.5;    // higher = easier (good for most users)
+  const PORTAL_DELAY_MS   = 150;
+  const REDIRECT_AFTER_MS = 1650;   // should match portal animation length
+
+  // ===== VHS state (visual only) =====
+  let trackingPhase = Math.random() * 1000;
+  let glitchUntil = 0;
+
+  setInterval(() => {
+    const d = new Date();
+    clock.textContent =
+      d.getHours().toString().padStart(2,"0") + ":" +
+      d.getMinutes().toString().padStart(2,"0") + ":" +
+      d.getSeconds().toString().padStart(2,"0");
+  }, 300);
+
+  function setStatus(t, on=false){
+    statusEl.textContent = t;
+    dot.classList.toggle("on", on);
+  }
+  function showError(t){
+    errEl.style.display = "block";
+    errEl.textContent = t;
+  }
+  function clearError(){
+    errEl.style.display = "none";
+    errEl.textContent = "";
+  }
+
+  function size(){
+    const r = fx.getBoundingClientRect();
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    fx.width = Math.floor(r.width * dpr);
+    fx.height = Math.floor(r.height * dpr);
+  }
+  window.addEventListener("resize", size);
+
+  function clamp(v,a,b){ return Math.max(a, Math.min(b, v)); }
+
+  function resetGate(){
+    portal.classList.remove("on");
+    portalArmed = false;
+    stillMs = 0;
+    lastMotionFrame = null;
+    if (tRedirect){ clearTimeout(tRedirect); tRedirect = null; }
+  }
+
+  function beginPortalAndRedirect(){
+    if (portalArmed) return;
+    portalArmed = true;
+
+    hint.textContent = "Falling inward.";
+    sub.textContent  = "Recognized.";
+
+    setTimeout(() => {
+      portal.classList.add("on");
+      tRedirect = setTimeout(() => {
+        window.location.href = SECRET_URL;
+      }, REDIRECT_AFTER_MS);
+    }, PORTAL_DELAY_MS);
+  }
+
+  async function startCam(){
+    clearError();
+    resetGate();
+    document.body.classList.remove("mirroring");
+
+    btnTry.disabled = true;
+    hint.textContent = "Permission requested.";
+    sub.textContent  = "The gate opens in reflection.";
+
+    try{
+      stream = await navigator.mediaDevices.getUserMedia({
+        video:{ facingMode:"user" },
+        audio:false
+      });
+
+      vid.srcObject = stream;
+      await vid.play();
+
+      size();
+
+      btnStop.disabled = false;
+      setStatus("Mirror active", true);
+
+      // Move the UI off-screen so they can see themselves
+      document.body.classList.add("mirroring");
+      hint.textContent = "Hold still for a moment.";
+
+      lastT = performance.now();
+      loop();
+    }catch(e){
+      stream = null;
+      btnStop.disabled = true;
+      btnTry.disabled = false;
+
+      setStatus("Mirror denied", false);
+      showError("Reflection required.");
+      hint.textContent = "Try again.";
+      sub.textContent  = "The answer is not outside.";
+
+      document.body.classList.remove("mirroring");
+    }
+  }
+
+  function stopCam(){
+    if (raf) cancelAnimationFrame(raf);
+    resetGate();
+    document.body.classList.remove("mirroring");
+
+    if (stream){
+      stream.getTracks().forEach(t => t.stop());
+    }
+    stream = null;
+
+    btnStop.disabled = true;
+    btnTry.disabled = false;
+
+    setStatus("Mirror stopped", false);
+    showError("The loop resets.");
+    hint.textContent = "Look inward.";
+  }
+
+  // ===== Motion score from RAW video (no VHS noise) =====
+  function motionScoreFromVideo(){
+    // draw raw video frame into tiny canvas
+    // (mirrored video is fine—motion diff still works)
+    mCtx.drawImage(vid, 0, 0, mW, mH);
+
+    const frame = mCtx.getImageData(0,0,mW,mH);
+    const d = frame.data;
+
+    // convert to simple luminance array on the fly and diff vs last
+    let score = 0;
+
+    if (lastMotionFrame){
+      const p = lastMotionFrame.data;
+
+      // sample every pixel (already tiny)
+      for (let i=0; i<d.length; i+=4){
+        const y1 = (d[i]*0.2126 + d[i+1]*0.7152 + d[i+2]*0.0722);
+        const y0 = (p[i]*0.2126 + p[i+1]*0.7152 + p[i+2]*0.0722);
+        score += Math.abs(y1 - y0);
+      }
+
+      // normalize to ~0–20ish range typically
+      score = score / (mW*mH) / 3.2;
+    }
+
+    lastMotionFrame = frame;
+    return score;
+  }
+
+  function updateStillness(dt){
+    if (portalArmed) return;
+
+    const motion = motionScoreFromVideo();
+
+    if (motion < MOTION_THRESHOLD){
+      stillMs += dt;
+    } else {
+      // decay rather than reset (feels fair)
+      stillMs = Math.max(0, stillMs - dt*1.25);
+    }
+
+    // cryptic progress cues
+    if (stillMs < 900) hint.textContent = "Hold still for a moment.";
+    else if (stillMs < 1700) hint.textContent = "Stay.";
+    else if (stillMs < REQUIRED_STILL_MS) hint.textContent = "…";
+    else hint.textContent = "Recognized.";
+
+    if (stillMs >= REQUIRED_STILL_MS){
+      beginPortalAndRedirect();
+    }
+  }
+
+  // ===== Your VHS draw (unchanged conceptually) =====
+  function drawVHS(){
+    const w = fx.width, h = fx.height;
+    const now = performance.now();
+
+    if (Math.random() < 0.02) glitchUntil = now + 240 + Math.random()*220;
+    const glitching = now < glitchUntil;
+
+    const wobble = Math.sin((now + trackingPhase) * 0.0032) * 1.8;
+    const jitter = (Math.random() - 0.5) * (glitching ? 2.8 : 1.2);
+
+    ctx.save();
+    ctx.clearRect(0,0,w,h);
+    ctx.translate(wobble + jitter, 0);
+    ctx.drawImage(vid, 0, 0, w, h);
+    ctx.restore();
+
+    const img = ctx.getImageData(0,0,w,h);
+    const d = img.data;
+
+    const barY = (((now*0.10) + trackingPhase*33) % (h + 240)) - 120;
+    const barHalf = 26;
+
+    const headBandY = h * 0.87;
+    const headBandH = Math.max(12, Math.floor(h * 0.075));
+    const headShift = (Math.sin(now*0.022) * 10) + (Math.random()-0.5) * (glitching ? 14 : 7);
+
+    for (let y=0; y<h; y++){
+      const scanDarken = (y % 3 === 0) ? 0.88 : 1.00;
+      const inHeadBand = (y > headBandY && y < headBandY + headBandH);
+      const trackBoost = (Math.abs(y - barY) < barHalf) ? 1.16 : 1.0;
+
+      for (let x=0; x<w; x++){
+        const i = (y*w + x) * 4;
+
+        const r = d[i], g = d[i+1], b = d[i+2];
+        let yv = 0.2126*r + 0.7152*g + 0.0722*b;
+
+        yv = (yv - 128) * 1.22 + 128;
+
+        let rr = yv * 0.97;
+        let gg = yv * 0.99;
+        let bb = yv * 1.05;
+
+        // noise (visual only; no longer used for stillness)
+        const n = (Math.random() - 0.5) * (glitching ? 18 : 12);
+        rr += n; gg += n; bb += n;
+
+        rr *= trackBoost * scanDarken;
+        gg *= trackBoost * scanDarken;
+        bb *= trackBoost * scanDarken;
+
+        d[i]   = clamp(rr, 0, 255);
+        d[i+1] = clamp(gg, 0, 255);
+        d[i+2] = clamp(bb, 0, 255);
+
+        if (inHeadBand && x > 3){
+          const j = i - 12;
+          d[i]   = (d[i]   * 0.60 + d[j]   * 0.40);
+          d[i+1] = (d[i+1] * 0.60 + d[j+1] * 0.40);
+          d[i+2] = (d[i+2] * 0.60 + d[j+2] * 0.40);
+        }
+      }
+    }
+
+    ctx.putImageData(img, 0, 0);
+
+    if (glitching || Math.random() < 0.07){
+      const gy = Math.floor(Math.random() * h);
+      const gh = Math.floor(8 + Math.random() * 22);
+      const shift = Math.floor((Math.random()-0.5) * (glitching ? 110 : 45));
+      try{
+        const band = ctx.getImageData(0, gy, w, gh);
+        ctx.putImageData(band, shift, gy);
+      }catch(_){}
+    }
+
+    try{
+      const hb = ctx.getImageData(0, Math.floor(headBandY), w, headBandH);
+      ctx.putImageData(hb, Math.floor(headShift), Math.floor(headBandY));
+    }catch(_){}
+
+    ctx.fillStyle = "rgba(0,0,0,0.10)";
+    ctx.fillRect(0,0,w,h);
+  }
+
+  let lastT = performance.now();
+  function loop(){
+    if (!stream) return;
+
+    const now = performance.now();
+    const dt = now - lastT;
+    lastT = now;
+
+    // 1) draw your VHS camera view
+    drawVHS();
+
+    // 2) compute stillness from RAW video (NOT the VHS canvas)
+    updateStillness(dt);
+
+    raf = requestAnimationFrame(loop);
+  }
+
+  btnCamera.onclick = startCam;
+  btnTry.onclick = startCam;
+  btnStop.onclick = stopCam;
+
+  document.addEventListener("visibilitychange",()=>{
+    if(document.hidden) stopCam();
+  });
 </script>
-</body>
-</html>
+
