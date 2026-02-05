@@ -108,65 +108,77 @@
       100% { transform: rotate(360deg) scale(1.02); }
     }
 
-    /* Portal takeover overlay */
+    /* Portal overlay: black/white concentric spiral */
     .portal{
       position:absolute; inset:0;
       pointer-events:none;
       opacity:0;
-      transform: scale(0.98);
-      transition: opacity 180ms ease;
       z-index: 50;
+      transition: opacity 180ms ease;
+      background: rgba(0,0,0,.0);
     }
-    .portal.on{
-      opacity:1;
-      animation: portalFall 1050ms cubic-bezier(.13,.84,.18,1) forwards;
-    }
+    .portal.on{ opacity:1; }
 
+    /* Concentric rings + spiral twist */
     .portal::before{
       content:"";
       position:absolute; inset:-25%;
+      /* rings */
       background:
-        radial-gradient(circle at 50% 50%, rgba(255,255,255,.18), rgba(255,255,255,0) 36%),
-        conic-gradient(from 0deg,
-          rgba(255,255,255,.10),
-          rgba(255,255,255,0) 10%,
-          rgba(255,255,255,.08) 20%,
-          rgba(255,255,255,0) 30%,
-          rgba(255,255,255,.07) 40%,
-          rgba(255,255,255,0) 50%,
-          rgba(255,255,255,.06) 60%,
-          rgba(255,255,255,0) 70%,
-          rgba(255,255,255,.05) 80%,
-          rgba(255,255,255,0) 90%,
-          rgba(255,255,255,.04));
-      mix-blend-mode: screen;
-      filter: blur(0.6px);
-      mask-image: radial-gradient(circle at 50% 50%, rgba(0,0,0,1) 0%, rgba(0,0,0,1) 62%, rgba(0,0,0,0) 82%);
-      -webkit-mask-image: radial-gradient(circle at 50% 50%, rgba(0,0,0,1) 0%, rgba(0,0,0,1) 62%, rgba(0,0,0,0) 82%);
-      animation: portalSpin 680ms linear infinite;
+        repeating-radial-gradient(circle at 50% 50%,
+          rgba(255,255,255,.95) 0px,
+          rgba(255,255,255,.95) 6px,
+          rgba(0,0,0,.98) 6px,
+          rgba(0,0,0,.98) 14px);
+      mix-blend-mode: normal;
+      filter: contrast(1.15) saturate(0.0);
+      transform-origin: 50% 50%;
+      /* mask to keep it “portal” shaped */
+      -webkit-mask-image: radial-gradient(circle at 50% 50%, rgba(0,0,0,1) 0%, rgba(0,0,0,1) 68%, rgba(0,0,0,0) 86%);
+      mask-image: radial-gradient(circle at 50% 50%, rgba(0,0,0,1) 0%, rgba(0,0,0,1) 68%, rgba(0,0,0,0) 86%);
     }
 
+    /* dark edge + fall tunnel */
     .portal::after{
       content:"";
       position:absolute; inset:0;
       background:
         radial-gradient(circle at 50% 50%,
           rgba(0,0,0,0) 0%,
-          rgba(0,0,0,.35) 55%,
-          rgba(0,0,0,.85) 100%);
-      opacity: .9;
+          rgba(0,0,0,.20) 52%,
+          rgba(0,0,0,.92) 100%);
+      opacity: 1;
     }
 
-    @keyframes portalSpin{
-      from{ transform: rotate(0deg) scale(1.05); }
-      to  { transform: rotate(360deg) scale(1.05); }
+    /* slower, more “falling” animation */
+    .portal.on{
+      animation: portalFallSlow 1650ms cubic-bezier(.12,.9,.16,1) forwards;
     }
-    @keyframes portalFall{
-      0%   { opacity:0; transform: scale(0.98) rotate(0deg); filter: blur(0px); }
-      12%  { opacity:1; transform: scale(1.02) rotate(8deg); filter: blur(0.2px); }
-      55%  { opacity:1; transform: scale(1.28) rotate(220deg); filter: blur(0.8px); }
-      85%  { opacity:1; transform: scale(1.75) rotate(430deg); filter: blur(1.4px); }
-      100% { opacity:1; transform: scale(2.15) rotate(560deg); filter: blur(2px); }
+
+    .portal.on::before{
+      animation: ringZoom 1650ms cubic-bezier(.12,.9,.16,1) forwards,
+                 spiralTwist 2400ms linear infinite;
+    }
+
+    @keyframes portalFallSlow{
+      0%   { opacity:0; transform: scale(1.00); filter: blur(0px); }
+      12%  { opacity:1; transform: scale(1.03); filter: blur(0.2px); }
+      55%  { opacity:1; transform: scale(1.35); filter: blur(0.7px); }
+      85%  { opacity:1; transform: scale(1.85); filter: blur(1.2px); }
+      100% { opacity:1; transform: scale(2.25); filter: blur(1.6px); }
+    }
+
+    /* zoom rings inward (feels like falling) */
+    @keyframes ringZoom{
+      0%   { transform: rotate(0deg) scale(0.92); }
+      100% { transform: rotate(140deg) scale(1.55); }
+    }
+
+    /* continuous slow twist for psychedelic feel */
+    @keyframes spiralTwist{
+      0%   { filter: contrast(1.15) brightness(1.0); transform: rotate(0deg) scale(1.0); }
+      50%  { filter: contrast(1.25) brightness(1.05); transform: rotate(180deg) scale(1.01); }
+      100% { filter: contrast(1.15) brightness(1.0); transform: rotate(360deg) scale(1.0); }
     }
 
     .hud{
@@ -199,13 +211,11 @@
       box-shadow:inset 0 0 0 1px rgba(255,255,255,.07);
       pointer-events:auto;
       backdrop-filter: blur(10px);
-
-      /* animation hooks */
       transition: transform 520ms cubic-bezier(.14,.9,.18,1), opacity 420ms ease, filter 520ms ease;
       will-change: transform, opacity, filter;
     }
 
-    /* NEW: when mirroring, slide prompt up off the view */
+    /* hide prompt once mirroring */
     body.mirroring .centerPrompt{
       transform: translateY(-60vh);
       opacity: 0.0;
@@ -361,12 +371,23 @@
   let stream = null;
   let raf = null;
 
-  let tPortal = null;
-  let tRedirect = null;
-  let redirectArmed = false;
+  // stillness tracking
+  let lastFrame = null;
+  let stillMs = 0;
+  let portalArmed = false;
 
+  // portal/redirect timers
+  let tRedirect = null;
+
+  // VHS state
   let trackingPhase = Math.random() * 1000;
   let glitchUntil = 0;
+
+  // tune these:
+  const REQUIRED_STILL_MS = 2600;     // ~2.6 seconds
+  const MOTION_TOLERANCE  = 6.0;      // higher = more forgiving
+  const PORTAL_DELAY_MS   = 150;      // tiny pause after “still enough”
+  const REDIRECT_AFTER_MS = 1650;     // match portalFallSlow duration
 
   setInterval(() => {
     const d = new Date();
@@ -401,35 +422,38 @@
 
   function clamp(v,a,b){ return Math.max(a, Math.min(b, v)); }
 
-  function clearTimers(){
-    if (tPortal) { clearTimeout(tPortal); tPortal = null; }
+  function resetGate(){
+    portal.classList.remove("on");
+    portalArmed = false;
+    stillMs = 0;
+    lastFrame = null;
     if (tRedirect){ clearTimeout(tRedirect); tRedirect = null; }
-    redirectArmed = false;
   }
 
   function beginPortalAndRedirect(){
-    if (redirectArmed) return;
-    redirectArmed = true;
+    if (portalArmed) return;
+    portalArmed = true;
 
-    sub.textContent = "Recognized.";
     hint.textContent = "Falling inward.";
+    sub.textContent  = "Recognized.";
 
-    // Portal starts ~1.0s after enable, redirect at ~2.0s
-    tPortal = setTimeout(() => portal.classList.add("on"), 1000);
-    tRedirect = setTimeout(() => { window.location.href = SECRET_URL; }, 2000);
+    setTimeout(() => {
+      portal.classList.add("on");
+      tRedirect = setTimeout(() => {
+        window.location.href = SECRET_URL;
+      }, REDIRECT_AFTER_MS);
+    }, PORTAL_DELAY_MS);
   }
 
   async function startCam(){
     clearError();
-    portal.classList.remove("on");
-    clearTimers();
+    resetGate();
 
-    // bring UI back if it was hidden
     document.body.classList.remove("mirroring");
 
     btnTry.disabled = true;
     hint.textContent = "Permission requested.";
-    sub.textContent = "The gate opens in reflection.";
+    sub.textContent  = "The gate opens in reflection.";
 
     try{
       stream = await navigator.mediaDevices.getUserMedia({
@@ -439,17 +463,14 @@
 
       vid.srcObject = stream;
       await vid.play();
-
       size();
 
       btnStop.disabled = false;
       setStatus("Mirror active", true);
 
-      // NEW: move prompt off-screen so they can see themselves
+      // move prompt off-screen so they can see themselves
       document.body.classList.add("mirroring");
-
-      // As requested: portal + redirect shortly after enable
-      beginPortalAndRedirect();
+      hint.textContent = "Hold still for a moment.";
 
       loop();
     }catch(e){
@@ -460,7 +481,7 @@
       setStatus("Mirror denied", false);
       showError("Reflection required.");
       hint.textContent = "Try again.";
-      sub.textContent = "The answer is not outside.";
+      sub.textContent  = "The answer is not outside.";
 
       document.body.classList.remove("mirroring");
     }
@@ -468,9 +489,7 @@
 
   function stopCam(){
     if (raf) cancelAnimationFrame(raf);
-    clearTimers();
-    portal.classList.remove("on");
-
+    resetGate();
     document.body.classList.remove("mirroring");
 
     if (stream){
@@ -568,11 +587,54 @@
 
     ctx.fillStyle = "rgba(0,0,0,0.10)";
     ctx.fillRect(0,0,w,h);
+
+    return img; // return last frame pixels for stillness calc
   }
 
+  function updateStillness(frameData, dt){
+    if (!frameData) return;
+
+    if (lastFrame){
+      let diff = 0;
+      // sample every ~256th byte to keep it light
+      for (let i = 0; i < frameData.data.length; i += 256){
+        diff += Math.abs(frameData.data[i] - lastFrame.data[i]);
+      }
+      // normalize diff into a "motion score"
+      const motion = diff / 1400; // empiric scaling
+
+      if (motion < MOTION_TOLERANCE){
+        stillMs += dt;
+      }else{
+        stillMs = Math.max(0, stillMs - dt*1.4); // decay rather than hard reset
+      }
+
+      // optional: update hint text as a subtle progress feel (still cryptic)
+      if (!portalArmed){
+        if (stillMs < 800) hint.textContent = "Hold still for a moment.";
+        else if (stillMs < 1600) hint.textContent = "Stay.";
+        else if (stillMs < REQUIRED_STILL_MS) hint.textContent = "…";
+        else hint.textContent = "Recognized.";
+      }
+
+      if (!portalArmed && stillMs >= REQUIRED_STILL_MS){
+        beginPortalAndRedirect();
+      }
+    }
+    lastFrame = frameData;
+  }
+
+  let lastT = performance.now();
   function loop(){
     if (!stream) return;
-    draw();
+
+    const now = performance.now();
+    const dt = now - lastT;
+    lastT = now;
+
+    const frame = draw();
+    updateStillness(frame, dt);
+
     raf = requestAnimationFrame(loop);
   }
 
