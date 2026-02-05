@@ -15,11 +15,7 @@
     font-family:system-ui,Arial,sans-serif;
   }
 
-  .wrap{
-    height:100%;
-    display:grid;
-    place-items:center;
-  }
+  .wrap{ height:100%; display:grid; place-items:center; }
 
   .stage{
     position:relative;
@@ -42,7 +38,7 @@
 
   /* Clean monochrome for reliable stillness */
   video{
-    filter: grayscale(100%) contrast(1.18) brightness(1.02);
+    filter: grayscale(100%) contrast(1.16) brightness(1.06);
   }
 
   /* ===== HUD ===== */
@@ -52,19 +48,64 @@
     display:grid;
     grid-template-rows:auto 1fr auto;
     padding:18px;
-    pointer-events:none;
     z-index:10;
+    pointer-events:none; /* default, selectively enable on interactive items */
   }
 
   .top{
     display:flex;
     justify-content:space-between;
-    font-size:12px;
-    letter-spacing:.2em;
-    text-transform:uppercase;
-    opacity:.58;
+    align-items:center;
+    gap:12px;
     user-select:none;
   }
+
+  /* Black text (requested) on a pale pill so it stays readable on the camera */
+  .instruction{
+    pointer-events:none;
+    display:inline-flex;
+    align-items:center;
+    padding:10px 12px;
+    border-radius:999px;
+    background:rgba(255,255,255,.72);
+    color:#000;
+    font-size:11px;
+    letter-spacing:.18em;
+    text-transform:uppercase;
+    box-shadow: inset 0 0 0 1px rgba(0,0,0,.10);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    white-space:nowrap;
+  }
+
+  .topRight{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    pointer-events:auto; /* allow Stop button clicks */
+  }
+
+  .clock{
+    font-size:11px;
+    letter-spacing:.16em;
+    text-transform:uppercase;
+    opacity:.55;
+  }
+
+  .stopTop{
+    border:0;
+    border-radius:999px;
+    padding:10px 12px;
+    background:rgba(255,255,255,.10);
+    color:#fff;
+    font-size:11px;
+    letter-spacing:.15em;
+    text-transform:uppercase;
+    cursor:pointer;
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,.10);
+  }
+  .stopTop:hover{ background:rgba(255,255,255,.16); }
+  .stopTop[disabled]{ opacity:.35; cursor:not-allowed; }
 
   .center{
     align-self:center;
@@ -74,11 +115,14 @@
     border-radius:16px;
     text-align:center;
     pointer-events:auto;
-    transition:.6s cubic-bezier(.14,.9,.18,1);
+    transition: transform 700ms cubic-bezier(.14,.9,.18,1), opacity 520ms ease, filter 700ms ease;
     box-shadow: inset 0 0 0 1px rgba(255,255,255,.08);
-    backdrop-filter: blur(8px);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    max-width:min(86vw,640px);
   }
 
+  /* Hide prompt once mirroring so users can see themselves */
   body.mirroring .center{
     transform:translateY(-60vh);
     opacity:0;
@@ -125,8 +169,8 @@
   .hint{
     margin-top:12px;
     font-size:12px;
-    opacity:.55;
-    letter-spacing:.08em;
+    opacity:.58;
+    letter-spacing:.10em;
     user-select:none;
   }
 
@@ -140,7 +184,7 @@
     user-select:none;
   }
 
-  /* ===== Portal (slower sinking concentric spiral) ===== */
+  /* ===== Portal (SLOW / FLOWING) ===== */
   .portal{
     position:absolute;
     inset:0;
@@ -151,25 +195,27 @@
 
   .portal.on{
     opacity:1;
-    animation: fall 2600ms cubic-bezier(.10,.92,.16,1) forwards;
+    animation: fall 4200ms cubic-bezier(.10,.92,.16,1) forwards;
   }
 
   .portal::before{
     content:"";
     position:absolute;
-    inset:-30%;
+    inset:-35%;
     background:
       repeating-radial-gradient(circle,
         #fff 0px,
-        #fff 6px,
-        #000 6px,
-        #000 16px);
-    filter: contrast(1.25);
+        #fff 7px,
+        #000 7px,
+        #000 20px);
     transform-origin: 50% 50%;
-    /* slower, hypnotic */
-    animation: slowSpin 9000ms linear infinite, slowBreath 3800ms ease-in-out infinite;
-    mask-image: radial-gradient(circle,#000 0%,#000 70%,transparent 88%);
-    -webkit-mask-image: radial-gradient(circle,#000 0%,#000 70%,transparent 88%);
+    /* very slow, hypnotic */
+    animation:
+      slowSpin 24000ms linear infinite,
+      slowBreath 6400ms ease-in-out infinite;
+    filter: contrast(1.25);
+    mask-image: radial-gradient(circle,#000 0%,#000 72%,transparent 90%);
+    -webkit-mask-image: radial-gradient(circle,#000 0%,#000 72%,transparent 90%);
   }
 
   .portal::after{
@@ -178,30 +224,30 @@
     inset:0;
     background:radial-gradient(circle,
       rgba(0,0,0,0) 0%,
-      rgba(0,0,0,.35) 56%,
+      rgba(0,0,0,.28) 58%,
       #000 100%);
   }
 
   @keyframes slowSpin{
-    from{ transform: rotate(0deg) scale(0.92); }
-    to  { transform: rotate(360deg) scale(1.12); }
+    from{ transform: rotate(0deg) scale(0.94); }
+    to  { transform: rotate(360deg) scale(1.08); }
   }
 
-  /* subtle pulsing = “psychedelic sinking” without turning into static */
   @keyframes slowBreath{
     0%   { filter: contrast(1.15) brightness(1.00); }
-    50%  { filter: contrast(1.35) brightness(1.06); }
+    50%  { filter: contrast(1.35) brightness(1.05); }
     100% { filter: contrast(1.15) brightness(1.00); }
   }
 
+  /* slow sink forward */
   @keyframes fall{
     0%   { transform: scale(1.0); filter: blur(0px); }
-    35%  { transform: scale(1.15); filter: blur(0.3px); }
-    70%  { transform: scale(1.55); filter: blur(0.9px); }
-    100% { transform: scale(2.25); filter: blur(1.5px); }
+    30%  { transform: scale(1.08); filter: blur(0.25px); }
+    65%  { transform: scale(1.32); filter: blur(0.65px); }
+    100% { transform: scale(2.05); filter: blur(1.25px); }
   }
 
-  /* ===== Coward “page” ===== */
+  /* ===== Coward “page” (same file, hash-routed) ===== */
   .cowardPage{
     position:absolute;
     inset:0;
@@ -211,36 +257,37 @@
     overflow:hidden;
     align-items:center;
     justify-content:center;
+    pointer-events:auto;
   }
   body.coward .cowardPage{ display:flex; }
 
-  /* giant repeated text using an SVG background */
   .cowardPage::before{
     content:"";
     position:absolute;
-    inset:-10%;
-    opacity:.16;
-    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='900' height='500'%3E%3Crect width='100%25' height='100%25' fill='black'/%3E%3Cg fill='white' fill-opacity='0.75' font-family='Arial' font-weight='800'%3E%3Ctext x='0' y='120' font-size='120'%3ECOWARD%3C/text%3E%3Ctext x='120' y='260' font-size='120'%3ECOWARD%3C/text%3E%3Ctext x='40' y='400' font-size='120'%3ECOWARD%3C/text%3E%3C/g%3E%3C/svg%3E");
-    background-size: 700px 420px;
+    inset:-15%;
+    opacity:.18;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='900' height='500'%3E%3Crect width='100%25' height='100%25' fill='black'/%3E%3Cg fill='white' fill-opacity='0.85' font-family='Arial' font-weight='900'%3E%3Ctext x='0' y='120' font-size='140'%3ECOWARD%3C/text%3E%3Ctext x='140' y='280' font-size='140'%3ECOWARD%3C/text%3E%3Ctext x='40' y='450' font-size='140'%3ECOWARD%3C/text%3E%3C/g%3E%3C/svg%3E");
+    background-size: 760px 520px;
     background-repeat: repeat;
-    transform: rotate(-8deg) scale(1.1);
-    filter: blur(0.2px);
+    transform: rotate(-10deg) scale(1.12);
+    filter: blur(0.35px);
   }
 
   .cowardInner{
     position:relative;
     text-align:center;
-    padding:28px 22px;
+    padding:30px 22px;
     border-radius:18px;
-    background:rgba(0,0,0,.45);
-    box-shadow: inset 0 0 0 1px rgba(255,255,255,.08);
+    background:rgba(0,0,0,.55);
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,.10);
     backdrop-filter: blur(10px);
-    max-width:min(82vw,720px);
+    -webkit-backdrop-filter: blur(10px);
+    max-width:min(86vw,760px);
   }
 
   .cowardInner h2{
     margin:0 0 14px;
-    font-size: clamp(44px, 7vw, 92px);
+    font-size: clamp(52px, 8vw, 110px);
     letter-spacing:.22em;
     text-transform:uppercase;
     line-height:1;
@@ -255,7 +302,6 @@
   }
 
   .cowardInner .backBtn{
-    pointer-events:auto;
     border:0;
     border-radius:999px;
     padding:12px 16px;
@@ -272,6 +318,7 @@
   @media(max-width:520px){
     .stage{ aspect-ratio:9/16; }
     body.mirroring .center{ transform:translateY(-80vh); }
+    .instruction{ font-size:10px; letter-spacing:.14em; padding:9px 10px; }
   }
 </style>
 </head>
@@ -279,9 +326,7 @@
 <body>
 <div class="wrap">
   <div class="stage">
-
     <video id="vid" autoplay muted playsinline></video>
-    <canvas id="fx"></canvas>
 
     <div class="portal" id="portal"></div>
 
@@ -296,8 +341,12 @@
 
     <div class="hud">
       <div class="top">
-        <div>HOLD STILL, BE PRESENT</div>
-        <div id="clock">—</div>
+        <div class="instruction" id="instruction">HOLD STILL, BE PRESENT</div>
+
+        <div class="topRight">
+          <div class="clock" id="clock">—</div>
+          <button class="stopTop" id="stopTop" disabled>Stop</button>
+        </div>
       </div>
 
       <div class="center">
@@ -306,7 +355,6 @@
 
         <div class="row">
           <button id="start">Enable Mirror</button>
-          <button id="stop" disabled>Stop</button>
         </div>
 
         <div class="hint" id="hint">Hold still.</div>
@@ -326,7 +374,7 @@
 
   const vid = document.getElementById("vid");
   const startBtn = document.getElementById("start");
-  const stopBtn = document.getElementById("stop");
+  const stopTop = document.getElementById("stopTop");
 
   const hint = document.getElementById("hint");
   const sub = document.getElementById("sub");
@@ -334,33 +382,32 @@
   const portal = document.getElementById("portal");
   const clock = document.getElementById("clock");
 
-  const cowardPage = document.getElementById("cowardPage");
   const backBtn = document.getElementById("backBtn");
 
-  let stream=null;
-  let raf=null;
+  let stream = null;
+  let raf = null;
 
-  // Motion detection canvas (tiny, fast, stable)
+  // Motion detection canvas (tiny, stable)
   const mCan = document.createElement("canvas");
-  mCan.width=80;
-  mCan.height=45;
+  mCan.width = 80;
+  mCan.height = 45;
   const mCtx = mCan.getContext("2d", { willReadFrequently: true });
 
-  let last=null;
-  let still=0;
-  let triggered=false;
+  let last = null;
+  let still = 0;
+  let triggered = false;
 
-  // Tuning (you asked for 7 seconds)
-  const NEED=7000;   // ms
-  const THRESH=7.5;  // motion tolerance (higher = easier)
-  const PORTAL_DELAY=200;
-  const REDIRECT_AFTER=2400; // allow the slower portal to “land” first
+  // You asked for 7 seconds
+  const NEED = 7000;     // ms
+  const THRESH = 7.8;    // motion tolerance (higher = easier)
+  const PORTAL_DELAY = 240;
+  const REDIRECT_AFTER = 3800; // allow the slower portal to “sink” before redirect
 
   function setClock(){
-    const d=new Date();
+    const d = new Date();
     clock.textContent =
-      d.getHours().toString().padStart(2,"0")+":"+
-      d.getMinutes().toString().padStart(2,"0")+":"+
+      d.getHours().toString().padStart(2,"0") + ":" +
+      d.getMinutes().toString().padStart(2,"0") + ":" +
       d.getSeconds().toString().padStart(2,"0");
   }
   setClock();
@@ -368,29 +415,29 @@
 
   function resetGate(){
     portal.classList.remove("on");
-    triggered=false;
-    still=0;
-    last=null;
+    triggered = false;
+    still = 0;
+    last = null;
   }
 
   function beginPortal(){
-    if(triggered) return;
-    triggered=true;
+    if (triggered) return;
+    triggered = true;
 
-    hint.textContent="Falling inward.";
-    sub.textContent="Recognized.";
+    hint.textContent = "Falling inward.";
+    sub.textContent = "Recognized.";
 
-    setTimeout(()=>{
+    setTimeout(() => {
       portal.classList.add("on");
-      setTimeout(()=>{
+      setTimeout(() => {
         window.location.href = SECRET_URL;
       }, REDIRECT_AFTER);
     }, PORTAL_DELAY);
   }
 
   async function startCam(){
-    // if on coward page, return to main
-    if(location.hash === "#coward") location.hash = "";
+    // If on coward page, return to main route
+    if (location.hash === "#coward") location.hash = "";
 
     resetGate();
     document.body.classList.remove("coward");
@@ -398,49 +445,50 @@
 
     try{
       stream = await navigator.mediaDevices.getUserMedia({ video:true, audio:false });
-      vid.srcObject=stream;
+      vid.srcObject = stream;
       await vid.play();
 
-      startBtn.disabled=true;
-      stopBtn.disabled=false;
+      startBtn.disabled = true;
+      stopTop.disabled = false;
 
-      statusEl.textContent="Mirror active";
-      hint.textContent="Hold still. Be present.";
+      statusEl.textContent = "Mirror active";
+      hint.textContent = "Hold still. Be present.";
+      sub.textContent = "The gate opens in reflection.";
 
       // move prompt off-screen
       document.body.classList.add("mirroring");
 
-      lastT=performance.now();
+      lastT = performance.now();
       loop();
     }catch(e){
-      statusEl.textContent="Denied";
-      hint.textContent="Reflection required.";
-      startBtn.disabled=false;
-      stopBtn.disabled=true;
+      statusEl.textContent = "Denied";
+      hint.textContent = "Reflection required.";
+      startBtn.disabled = false;
+      stopTop.disabled = true;
     }
   }
 
   function stopCam(){
-    if(raf) cancelAnimationFrame(raf);
-    raf=null;
+    if (raf) cancelAnimationFrame(raf);
+    raf = null;
 
-    if(stream){
-      stream.getTracks().forEach(t=>t.stop());
+    if (stream){
+      stream.getTracks().forEach(t => t.stop());
     }
-    stream=null;
+    stream = null;
 
-    startBtn.disabled=false;
-    stopBtn.disabled=true;
+    startBtn.disabled = false;
+    stopTop.disabled = true;
 
-    statusEl.textContent="Mirror stopped";
-    hint.textContent="Look inward.";
+    statusEl.textContent = "Mirror stopped";
+    hint.textContent = "Look inward.";
 
     document.body.classList.remove("mirroring");
     resetGate();
   }
 
   function goCoward(){
-    // stop cam + route to coward page
+    // Keep the “enable mirror” experience — but STOP routes to coward page
     stopCam();
     location.hash = "#coward";
     document.body.classList.add("coward");
@@ -449,61 +497,61 @@
   function backFromCoward(){
     location.hash = "";
     document.body.classList.remove("coward");
-    statusEl.textContent="Mirror idle";
-    hint.textContent="Hold still.";
-    sub.textContent="The gate opens in reflection.";
+    statusEl.textContent = "Mirror idle";
+    hint.textContent = "Hold still.";
+    sub.textContent = "The gate opens in reflection.";
   }
 
   function motionScore(){
-    // raw frame (no effects)
-    mCtx.drawImage(vid,0,0,80,45);
-    const f=mCtx.getImageData(0,0,80,45);
-    let s=0;
+    // raw frame (no added noise), low-res
+    mCtx.drawImage(vid, 0, 0, 80, 45);
+    const f = mCtx.getImageData(0, 0, 80, 45);
+    let s = 0;
 
-    if(last){
-      for(let i=0;i<f.data.length;i+=4){
-        const y1=f.data[i];      // already grayscale-ish from video filter
-        const y0=last.data[i];
-        s += Math.abs(y1-y0);
+    if (last){
+      for (let i = 0; i < f.data.length; i += 4){
+        const y1 = f.data[i];      // already grayscale-ish
+        const y0 = last.data[i];
+        s += Math.abs(y1 - y0);
       }
-      s = s/(80*45)/3;
+      s = s / (80 * 45) / 3;
     }
-    last=f;
+
+    last = f;
     return s;
   }
 
-  let lastT=performance.now();
+  let lastT = performance.now();
   function loop(){
-    if(!stream) return;
+    if (!stream) return;
 
-    const now=performance.now();
-    const dt=now-lastT;
-    lastT=now;
+    const now = performance.now();
+    const dt = now - lastT;
+    lastT = now;
 
     const m = motionScore();
 
-    if(m < THRESH){
+    if (m < THRESH){
       still += dt;
-    }else{
-      // decay (feels fair)
-      still = Math.max(0, still - dt*1.15);
+    } else {
+      // decay (fairer than a full reset)
+      still = Math.max(0, still - dt * 1.15);
     }
 
-    if(!triggered){
-      if(still < 1500) hint.textContent="Hold still. Be present.";
-      else if(still < 3500) hint.textContent="Stay.";
-      else if(still < NEED) hint.textContent="…";
+    if (!triggered){
+      if (still < 2000) hint.textContent = "Hold still. Be present.";
+      else if (still < 4500) hint.textContent = "Stay.";
+      else if (still < NEED) hint.textContent = "…";
       else beginPortal();
     }
 
     raf = requestAnimationFrame(loop);
   }
 
-  // hash routing (so it feels like another page)
   function syncRoute(){
-    if(location.hash === "#coward"){
+    if (location.hash === "#coward"){
       document.body.classList.add("coward");
-    }else{
+    } else {
       document.body.classList.remove("coward");
     }
   }
@@ -511,11 +559,11 @@
   syncRoute();
 
   startBtn.onclick = startCam;
-  stopBtn.onclick = goCoward;
+  stopTop.onclick = goCoward;
   backBtn.onclick = backFromCoward;
 
-  document.addEventListener("visibilitychange",()=>{
-    if(document.hidden) stopCam();
+  document.addEventListener("visibilitychange", () => {
+    if (document.hidden) stopCam();
   });
 </script>
 
