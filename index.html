@@ -1,972 +1,379 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>SPIRAL IN</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
 
-  <style>
-    :root{
-      --bg:#07080a; --fg:#e9edf2;
-      --muted:rgba(233,237,242,.72);
-      --faint:rgba(233,237,242,.18);
-      --danger:rgba(255,140,140,.95);
-      --ok:rgba(120,255,180,.65);
-    }
+<title>SPIRAL IN</title>
 
-    html,body{
-      height:100%; margin:0; background:var(--bg); color:var(--fg); overflow:hidden;
-      font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial;
-    }
+<style>
+html,body{
+  height:100%;
+  margin:0;
+  background:#000;
+  color:#fff;
+  overflow:hidden;
+  font-family:system-ui,Arial,sans-serif;
+}
 
-    .wrap{ height:100%; display:grid; place-items:center; }
+.wrap{
+  height:100%;
+  display:grid;
+  place-items:center;
+}
 
-    .stage{
-      position:relative;
-      width:min(92vw,900px);
-      aspect-ratio:16/9;
-      border-radius:18px;
-      overflow:hidden;
-      background:
-        radial-gradient(1200px 600px at 50% 40%, rgba(255,255,255,.06), transparent 60%),
-        linear-gradient(180deg, rgba(255,255,255,.03), transparent 35%);
-      box-shadow:
-        0 20px 80px rgba(0,0,0,.65),
-        inset 0 0 0 1px rgba(255,255,255,.08);
-    }
+.stage{
+  position:relative;
+  width:min(92vw,900px);
+  aspect-ratio:16/9;
+  border-radius:18px;
+  overflow:hidden;
+  background:#000;
+  box-shadow:0 0 60px rgba(0,0,0,.8);
+}
 
-    video,canvas{
-      position:absolute; inset:0; width:100%; height:100%;
-      object-fit:cover;
-      transform:scaleX(-1);
-    }
+video,canvas{
+  position:absolute;
+  inset:0;
+  width:100%;
+  height:100%;
+  object-fit:cover;
+  transform:scaleX(-1);
+}
 
-    .scanlines{
-      position:absolute; inset:0; pointer-events:none;
-      background:repeating-linear-gradient(
-        to bottom,
-        rgba(0,0,0,0),
-        rgba(0,0,0,0) 2px,
-        rgba(0,0,0,.20) 3px);
-      opacity:.55;
-      mix-blend-mode:multiply;
-      animation: scanMove 1.2s linear infinite;
-    }
-    @keyframes scanMove{
-      0%   { transform: translateY(0); }
-      100% { transform: translateY(3px); }
-    }
+/* Force black & white */
+video{
+  filter: grayscale(100%) contrast(1.15);
+}
 
-    .grain{
-      position:absolute; inset:-20%; pointer-events:none;
-      background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2'/%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23n)' opacity='.35'/%3E%3C/svg%3E");
-      opacity:.22;
-      mix-blend-mode:overlay;
-      animation: grainDrift 4.8s linear infinite;
-      transform: rotate(1deg);
-    }
-    @keyframes grainDrift{
-      0%   { transform: translate(-2%,-1%) rotate(1deg); }
-      50%  { transform: translate(1%,2%) rotate(1deg); }
-      100% { transform: translate(-2%,-1%) rotate(1deg); }
-    }
+/* Portal */
+.portal{
+  position:absolute;
+  inset:0;
+  pointer-events:none;
+  opacity:0;
+  z-index:50;
+}
 
-    .vignette{
-      position:absolute; inset:0; pointer-events:none;
-      background:radial-gradient(circle at 50% 45%,
-        rgba(0,0,0,.05) 0%,
-        rgba(0,0,0,.28) 55%,
-        rgba(0,0,0,.75) 100%);
-      opacity:.96;
-    }
+.portal.on{
+  opacity:1;
+  animation:fall 1800ms cubic-bezier(.12,.9,.18,1) forwards;
+}
 
-    .spiral{
-      position:absolute; inset:-20%;
-      pointer-events:none;
-      opacity:.18;
-      mix-blend-mode:screen;
-      filter: blur(0.2px);
-      animation: spiralTurn 18s linear infinite;
-      transform-origin: 50% 50%;
-      background:
-        radial-gradient(circle at 50% 50%, rgba(255,255,255,.10), transparent 55%),
-        conic-gradient(from 90deg,
-          rgba(255,255,255,.08),
-          rgba(255,255,255,0) 12%,
-          rgba(255,255,255,.06) 24%,
-          rgba(255,255,255,0) 36%,
-          rgba(255,255,255,.05) 48%,
-          rgba(255,255,255,0) 60%,
-          rgba(255,255,255,.04) 72%,
-          rgba(255,255,255,0) 84%,
-          rgba(255,255,255,.03));
-      mask-image: radial-gradient(circle at 50% 50%, rgba(0,0,0,1) 0%, rgba(0,0,0,.9) 55%, rgba(0,0,0,0) 78%);
-      -webkit-mask-image: radial-gradient(circle at 50% 50%, rgba(0,0,0,1) 0%, rgba(0,0,0,.9) 55%, rgba(0,0,0,0) 78%);
-    }
-    @keyframes spiralTurn{
-      0%   { transform: rotate(0deg) scale(1.02); }
-      100% { transform: rotate(360deg) scale(1.02); }
-    }
+.portal::before{
+  content:"";
+  position:absolute;
+  inset:-25%;
+  background:
+    repeating-radial-gradient(circle,
+      #fff 0px,
+      #fff 6px,
+      #000 6px,
+      #000 14px);
+  filter:contrast(1.2);
+  animation:spin 2600ms linear infinite;
+  mask-image:radial-gradient(circle,#000 0%,#000 65%,transparent 85%);
+}
 
-    /* Portal overlay: black/white concentric spiral */
-    .portal{
-      position:absolute; inset:0;
-      pointer-events:none;
-      opacity:0;
-      z-index: 50;
-      transition: opacity 180ms ease;
-      background: rgba(0,0,0,.0);
-    }
-    .portal.on{ opacity:1; }
+.portal::after{
+  content:"";
+  position:absolute;
+  inset:0;
+  background:radial-gradient(circle,
+    transparent 0%,
+    rgba(0,0,0,.4) 55%,
+    #000 100%);
+}
 
-    /* Concentric rings + spiral twist */
-    .portal::before{
-      content:"";
-      position:absolute; inset:-25%;
-      /* rings */
-      background:
-        repeating-radial-gradient(circle at 50% 50%,
-          rgba(255,255,255,.95) 0px,
-          rgba(255,255,255,.95) 6px,
-          rgba(0,0,0,.98) 6px,
-          rgba(0,0,0,.98) 14px);
-      mix-blend-mode: normal;
-      filter: contrast(1.15) saturate(0.0);
-      transform-origin: 50% 50%;
-      /* mask to keep it “portal” shaped */
-      -webkit-mask-image: radial-gradient(circle at 50% 50%, rgba(0,0,0,1) 0%, rgba(0,0,0,1) 68%, rgba(0,0,0,0) 86%);
-      mask-image: radial-gradient(circle at 50% 50%, rgba(0,0,0,1) 0%, rgba(0,0,0,1) 68%, rgba(0,0,0,0) 86%);
-    }
+@keyframes spin{
+  from{transform:rotate(0deg) scale(.9);}
+  to{transform:rotate(360deg) scale(1.3);}
+}
 
-    /* dark edge + fall tunnel */
-    .portal::after{
-      content:"";
-      position:absolute; inset:0;
-      background:
-        radial-gradient(circle at 50% 50%,
-          rgba(0,0,0,0) 0%,
-          rgba(0,0,0,.20) 52%,
-          rgba(0,0,0,.92) 100%);
-      opacity: 1;
-    }
+@keyframes fall{
+  0%{transform:scale(1);filter:blur(0);}
+  60%{transform:scale(1.5);filter:blur(.8px);}
+  100%{transform:scale(2.2);filter:blur(1.4px);}
+}
 
-    /* slower, more “falling” animation */
-    .portal.on{
-      animation: portalFallSlow 1650ms cubic-bezier(.12,.9,.16,1) forwards;
-    }
+/* HUD */
 
-    .portal.on::before{
-      animation: ringZoom 1650ms cubic-bezier(.12,.9,.16,1) forwards,
-                 spiralTwist 2400ms linear infinite;
-    }
+.hud{
+  position:absolute;
+  inset:0;
+  display:grid;
+  grid-template-rows:auto 1fr auto;
+  padding:18px;
+  pointer-events:none;
+}
 
-    @keyframes portalFallSlow{
-      0%   { opacity:0; transform: scale(1.00); filter: blur(0px); }
-      12%  { opacity:1; transform: scale(1.03); filter: blur(0.2px); }
-      55%  { opacity:1; transform: scale(1.35); filter: blur(0.7px); }
-      85%  { opacity:1; transform: scale(1.85); filter: blur(1.2px); }
-      100% { opacity:1; transform: scale(2.25); filter: blur(1.6px); }
-    }
+.top{
+  display:flex;
+  justify-content:space-between;
+  font-size:12px;
+  letter-spacing:.2em;
+  opacity:.5;
+}
 
-    /* zoom rings inward (feels like falling) */
-    @keyframes ringZoom{
-      0%   { transform: rotate(0deg) scale(0.92); }
-      100% { transform: rotate(140deg) scale(1.55); }
-    }
+.center{
+  align-self:center;
+  justify-self:center;
+  background:rgba(0,0,0,.6);
+  padding:24px;
+  border-radius:16px;
+  text-align:center;
+  pointer-events:auto;
+  transition:.6s ease;
+}
 
-    /* continuous slow twist for psychedelic feel */
-    @keyframes spiralTwist{
-      0%   { filter: contrast(1.15) brightness(1.0); transform: rotate(0deg) scale(1.0); }
-      50%  { filter: contrast(1.25) brightness(1.05); transform: rotate(180deg) scale(1.01); }
-      100% { filter: contrast(1.15) brightness(1.0); transform: rotate(360deg) scale(1.0); }
-    }
+body.mirroring .center{
+  transform:translateY(-60vh);
+  opacity:0;
+  filter:blur(2px);
+  pointer-events:none;
+}
 
-    .hud{
-      position:absolute; inset:0;
-      display:grid;
-      grid-template-rows:auto 1fr auto;
-      padding:18px;
-      pointer-events:none;
-      z-index: 10;
-    }
+h1{
+  margin:0 0 10px;
+  letter-spacing:.2em;
+  text-transform:uppercase;
+}
 
-    .topline{
-      display:flex;
-      justify-content:space-between;
-      text-transform:uppercase;
-      font-size:12px;
-      letter-spacing:.16em;
-      color:var(--faint);
-      user-select:none;
-    }
+p{
+  margin:0 0 16px;
+  opacity:.7;
+  font-size:13px;
+}
 
-    .centerPrompt{
-      align-self:center;
-      justify-self:center;
-      background:rgba(0,0,0,.18);
-      padding:22px 20px;
-      border-radius:16px;
-      text-align:center;
-      max-width:620px;
-      box-shadow:inset 0 0 0 1px rgba(255,255,255,.07);
-      pointer-events:auto;
-      backdrop-filter: blur(10px);
-      transition: transform 520ms cubic-bezier(.14,.9,.18,1), opacity 420ms ease, filter 520ms ease;
-      will-change: transform, opacity, filter;
-    }
+.row{
+  display:flex;
+  gap:10px;
+  justify-content:center;
+}
 
-    /* hide prompt once mirroring */
-    body.mirroring .centerPrompt{
-      transform: translateY(-60vh);
-      opacity: 0.0;
-      filter: blur(2px);
-      pointer-events:none;
-    }
+button{
+  border:0;
+  border-radius:999px;
+  padding:10px 14px;
+  background:rgba(255,255,255,.1);
+  color:#fff;
+  font-size:11px;
+  letter-spacing:.15em;
+  text-transform:uppercase;
+  cursor:pointer;
+}
 
-    .title{
-      margin:0 0 10px;
-      font-size:clamp(18px,3vw,26px);
-      letter-spacing:.18em;
-      text-transform:uppercase;
-    }
+button:hover{background:rgba(255,255,255,.18);}
+button[disabled]{opacity:.35}
 
-    .sub{
-      color:rgba(233,237,242,.62);
-      font-size:13px;
-      margin:0 0 16px;
-      line-height:1.5;
-      letter-spacing:.02em;
-    }
+.hint{
+  margin-top:12px;
+  font-size:12px;
+  opacity:.5;
+}
 
-    .row{
-      display:flex;
-      gap:10px;
-      justify-content:center;
-      flex-wrap:wrap;
-      margin-top:2px;
-    }
-
-    button{
-      border:0;
-      border-radius:999px;
-      padding:10px 14px;
-      background:rgba(233,237,242,.10);
-      color:#fff;
-      font-size:12px;
-      letter-spacing:.12em;
-      text-transform:uppercase;
-      cursor:pointer;
-      box-shadow:inset 0 0 0 1px rgba(255,255,255,.10);
-    }
-    button:hover{ background:rgba(233,237,242,.14); }
-    button[disabled]{ opacity:.35; cursor:not-allowed; }
-
-    .hintline{
-      margin-top:12px;
-      font-size:12px;
-      color:rgba(233,237,242,.55);
-      letter-spacing:.04em;
-      user-select:none;
-    }
-
-    .bottom{
-      display:flex;
-      justify-content:space-between;
-      font-size:11px;
-      text-transform:uppercase;
-      color:var(--faint);
-      user-select:none;
-    }
-
-    .statusDot{
-      width:8px; height:8px; border-radius:50%;
-      background:rgba(255,255,255,.2);
-      display:inline-block;
-      margin-right:6px;
-      box-shadow:0 0 0 2px rgba(255,255,255,.06);
-    }
-    .statusDot.on{
-      background:var(--ok);
-      box-shadow:0 0 0 2px rgba(120,255,180,.12), 0 0 18px rgba(120,255,180,.18);
-    }
-
-    .error{
-      margin-top:10px;
-      font-size:12px;
-      color:var(--danger);
-      display:none;
-    }
-
-    @media(max-width:520px){
-      .stage{ aspect-ratio:9/16; }
-      body.mirroring .centerPrompt{ transform: translateY(-80vh); }
-    }
-  </style>
+.bottom{
+  display:flex;
+  justify-content:space-between;
+  font-size:11px;
+  letter-spacing:.15em;
+  opacity:.5;
+}
+</style>
 </head>
 
 <body>
 <div class="wrap">
-  <div class="stage">
-    <video id="vid" autoplay muted playsinline></video>
-    <canvas id="fx"></canvas>
+<div class="stage">
 
-    <div class="spiral" aria-hidden="true"></div>
-    <div class="scanlines" aria-hidden="true"></div>
-    <div class="grain" aria-hidden="true"></div>
-    <div class="vignette" aria-hidden="true"></div>
+<video id="vid" autoplay muted playsinline></video>
+<canvas id="fx"></canvas>
 
-    <div class="portal" id="portal" aria-hidden="true"></div>
+<div class="portal" id="portal"></div>
 
-    <div class="hud">
-      <div class="topline">
-        <div>SPIRAL IN</div>
-        <div id="clock">—</div>
-      </div>
+<div class="hud">
 
-      <div class="centerPrompt">
-        <h1 class="title">Look inward.</h1>
-        <p class="sub" id="sub">The gate opens in reflection.</p>
+<div class="top">
+  <div>SPIRAL IN</div>
+  <div id="clock">—</div>
+</div>
 
-        <div class="row">
-          <button id="btnCamera">Enable Mirror</button>
-          <button id="btnTry" disabled>Try Again</button>
-          <button id="btnStop" disabled>Stop</button>
-        </div>
+<div class="center">
+  <h1>Look inward.</h1>
+  <p id="sub">The gate opens in reflection.</p>
 
-        <div class="hintline" id="hint">Hold still. Become present.</div>
-        <div class="error" id="err"></div>
-      </div>
-
-      <div class="bottom">
-        <div>
-          <span class="statusDot" id="dot"></span>
-          <span id="status">Mirror idle</span>
-        </div>
-        <div><!-- blank --></div>
-      </div>
-    </div>
+  <div class="row">
+    <button id="start">Enable Mirror</button>
+    <button id="stop" disabled>Stop</button>
   </div>
+
+  <div class="hint" id="hint">Hold still.</div>
+</div>
+
+<div class="bottom">
+  <div id="status">Mirror idle</div>
+  <div></div>
+</div>
+
+</div>
+</div>
 </div>
 
 <script>
-  const SECRET_URL = "https://www.photonisdead.com/";
+const SECRET_URL = "https://www.photonisdead.com/";
 
-  const vid = document.getElementById("vid");
-  const fx  = document.getElementById("fx");
-  const ctx = fx.getContext("2d", { willReadFrequently: true });
+const vid = document.getElementById("vid");
+const start = document.getElementById("start");
+const stopBtn = document.getElementById("stop");
 
-  const btnCamera = document.getElementById("btnCamera");
-  const btnTry    = document.getElementById("btnTry");
-  const btnStop   = document.getElementById("btnStop");
+const hint = document.getElementById("hint");
+const sub = document.getElementById("sub");
+const status = document.getElementById("status");
+const portal = document.getElementById("portal");
+const clock = document.getElementById("clock");
 
-  const statusEl = document.getElementById("status");
-  const dot      = document.getElementById("dot");
-  const errEl    = document.getElementById("err");
+let stream=null;
+let raf=null;
 
-  const hint   = document.getElementById("hint");
-  const sub    = document.getElementById("sub");
-  const clock  = document.getElementById("clock");
-  const portal = document.getElementById("portal");
+/* Motion detection canvas */
+const mCan = document.createElement("canvas");
+mCan.width=80;
+mCan.height=45;
+const mCtx = mCan.getContext("2d");
 
-  let stream = null;
-  let raf = null;
+let last=null;
+let still=0;
+let triggered=false;
 
-  // stillness tracking
-  let lastFrame = null;
-  let stillMs = 0;
-  let portalArmed = false;
+/* Tuning */
+const NEED=2600;        // ms
+const THRESH=7.5;       // motion tolerance
 
-  // portal/redirect timers
-  let tRedirect = null;
+setInterval(()=>{
+  const d=new Date();
+  clock.textContent=
+    d.getHours().toString().padStart(2,"0")+":"+
+    d.getMinutes().toString().padStart(2,"0")+":"+
+    d.getSeconds().toString().padStart(2,"0");
+},300);
 
-  // VHS state
-  let trackingPhase = Math.random() * 1000;
-  let glitchUntil = 0;
+function reset(){
+  portal.classList.remove("on");
+  triggered=false;
+  still=0;
+  last=null;
+}
 
-  // tune these:
-  const REQUIRED_STILL_MS = 2600;     // ~2.6 seconds
-  const MOTION_TOLERANCE  = 6.0;      // higher = more forgiving
-  const PORTAL_DELAY_MS   = 150;      // tiny pause after “still enough”
-  const REDIRECT_AFTER_MS = 1650;     // match portalFallSlow duration
+function begin(){
+  if(triggered) return;
+  triggered=true;
 
-  setInterval(() => {
-    const d = new Date();
-    clock.textContent =
-      d.getHours().toString().padStart(2,"0") + ":" +
-      d.getMinutes().toString().padStart(2,"0") + ":" +
-      d.getSeconds().toString().padStart(2,"0");
-  }, 300);
+  hint.textContent="Falling inward.";
+  sub.textContent="Recognized.";
 
-  function setStatus(t, on=false){
-    statusEl.textContent = t;
-    dot.classList.toggle("on", on);
+  setTimeout(()=>{
+    portal.classList.add("on");
+    setTimeout(()=>{
+      location.href=SECRET_URL;
+    },1700);
+  },150);
+}
+
+async function startCam(){
+  reset();
+  document.body.classList.remove("mirroring");
+
+  try{
+    stream=await navigator.mediaDevices.getUserMedia({video:true});
+    vid.srcObject=stream;
+    await vid.play();
+
+    start.disabled=true;
+    stopBtn.disabled=false;
+
+    status.textContent="Mirror active";
+    hint.textContent="Hold still.";
+    document.body.classList.add("mirroring");
+
+    lastT=performance.now();
+    loop();
+
+  }catch(e){
+    status.textContent="Denied";
+  }
+}
+
+function stopCam(){
+  if(raf) cancelAnimationFrame(raf);
+
+  if(stream){
+    stream.getTracks().forEach(t=>t.stop());
   }
 
-  function showError(t){
-    errEl.style.display = "block";
-    errEl.textContent = t;
-  }
+  stream=null;
+  reset();
 
-  function clearError(){
-    errEl.style.display = "none";
-    errEl.textContent = "";
-  }
+  start.disabled=false;
+  stopBtn.disabled=true;
 
-  function size(){
-    const r = fx.getBoundingClientRect();
-    const dpr = Math.min(window.devicePixelRatio || 1, 2);
-    fx.width = Math.floor(r.width * dpr);
-    fx.height = Math.floor(r.height * dpr);
-  }
-  window.addEventListener("resize", size);
+  status.textContent="Mirror stopped";
+  hint.textContent="Look inward.";
 
-  function clamp(v,a,b){ return Math.max(a, Math.min(b, v)); }
+  document.body.classList.remove("mirroring");
+}
 
-  function resetGate(){
-    portal.classList.remove("on");
-    portalArmed = false;
-    stillMs = 0;
-    lastFrame = null;
-    if (tRedirect){ clearTimeout(tRedirect); tRedirect = null; }
-  }
+function motionScore(){
+  mCtx.drawImage(vid,0,0,80,45);
+  const f=mCtx.getImageData(0,0,80,45);
+  let s=0;
 
-  function beginPortalAndRedirect(){
-    if (portalArmed) return;
-    portalArmed = true;
-
-    hint.textContent = "Falling inward.";
-    sub.textContent  = "Recognized.";
-
-    setTimeout(() => {
-      portal.classList.add("on");
-      tRedirect = setTimeout(() => {
-        window.location.href = SECRET_URL;
-      }, REDIRECT_AFTER_MS);
-    }, PORTAL_DELAY_MS);
-  }
-
-  async function startCam(){
-    clearError();
-    resetGate();
-
-    document.body.classList.remove("mirroring");
-
-    btnTry.disabled = true;
-    hint.textContent = "Permission requested.";
-    sub.textContent  = "The gate opens in reflection.";
-
-    try{
-      stream = await navigator.mediaDevices.getUserMedia({
-        video:{ facingMode:"user" },
-        audio:false
-      });
-
-      vid.srcObject = stream;
-      await vid.play();
-      size();
-
-      btnStop.disabled = false;
-      setStatus("Mirror active", true);
-
-      // move prompt off-screen so they can see themselves
-      document.body.classList.add("mirroring");
-      hint.textContent = "Hold still for a moment.";
-
-      loop();
-    }catch(e){
-      stream = null;
-      btnStop.disabled = true;
-      btnTry.disabled = false;
-
-      setStatus("Mirror denied", false);
-      showError("Reflection required.");
-      hint.textContent = "Try again.";
-      sub.textContent  = "The answer is not outside.";
-
-      document.body.classList.remove("mirroring");
+  if(last){
+    for(let i=0;i<f.data.length;i+=4){
+      const y1=f.data[i];
+      const y0=last.data[i];
+      s+=Math.abs(y1-y0);
     }
+    s=s/(80*45)/3;
   }
 
-  function stopCam(){
-    if (raf) cancelAnimationFrame(raf);
-    resetGate();
-    document.body.classList.remove("mirroring");
+  last=f;
+  return s;
+}
 
-    if (stream){
-      stream.getTracks().forEach(t => t.stop());
-    }
-    stream = null;
+let lastT=performance.now();
 
-    btnStop.disabled = true;
-    btnTry.disabled = false;
+function loop(){
+  if(!stream) return;
 
-    setStatus("Mirror stopped", false);
-    showError("The loop resets.");
-    hint.textContent = "Look inward.";
+  const now=performance.now();
+  const dt=now-lastT;
+  lastT=now;
+
+  const m=motionScore();
+
+  if(m<THRESH){
+    still+=dt;
+  }else{
+    still=Math.max(0,still-dt);
   }
 
-  function draw(){
-    const w = fx.width, h = fx.height;
-    const now = performance.now();
-
-    if (Math.random() < 0.02) glitchUntil = now + 240 + Math.random()*220;
-    const glitching = now < glitchUntil;
-
-    const wobble = Math.sin((now + trackingPhase) * 0.0032) * 1.8;
-    const jitter = (Math.random() - 0.5) * (glitching ? 2.8 : 1.2);
-
-    ctx.save();
-    ctx.clearRect(0,0,w,h);
-    ctx.translate(wobble + jitter, 0);
-    ctx.drawImage(vid, 0, 0, w, h);
-    ctx.restore();
-
-    const img = ctx.getImageData(0,0,w,h);
-    const d = img.data;
-
-    const barY = (((now*0.10) + trackingPhase*33) % (h + 240)) - 120;
-    const barHalf = 26;
-
-    const headBandY = h * 0.87;
-    const headBandH = Math.max(12, Math.floor(h * 0.075));
-    const headShift = (Math.sin(now*0.022) * 10) + (Math.random()-0.5) * (glitching ? 14 : 7);
-
-    for (let y=0; y<h; y++){
-      const scanDarken = (y % 3 === 0) ? 0.88 : 1.00;
-      const inHeadBand = (y > headBandY && y < headBandY + headBandH);
-      const trackBoost = (Math.abs(y - barY) < barHalf) ? 1.16 : 1.0;
-
-      for (let x=0; x<w; x++){
-        const i = (y*w + x) * 4;
-
-        const r = d[i], g = d[i+1], b = d[i+2];
-        let yv = 0.2126*r + 0.7152*g + 0.0722*b;
-
-        yv = (yv - 128) * 1.22 + 128;
-
-        let rr = yv * 0.97;
-        let gg = yv * 0.99;
-        let bb = yv * 1.05;
-
-        const n = (Math.random() - 0.5) * (glitching ? 18 : 12);
-        rr += n; gg += n; bb += n;
-
-        rr *= trackBoost * scanDarken;
-        gg *= trackBoost * scanDarken;
-        bb *= trackBoost * scanDarken;
-
-        d[i]   = clamp(rr, 0, 255);
-        d[i+1] = clamp(gg, 0, 255);
-        d[i+2] = clamp(bb, 0, 255);
-
-        if (inHeadBand && x > 3){
-          const j = i - 12;
-          d[i]   = (d[i]   * 0.60 + d[j]   * 0.40);
-          d[i+1] = (d[i+1] * 0.60 + d[j+1] * 0.40);
-          d[i+2] = (d[i+2] * 0.60 + d[j+2] * 0.40);
-        }
-      }
-    }
-
-    ctx.putImageData(img, 0, 0);
-
-    if (glitching || Math.random() < 0.07){
-      const gy = Math.floor(Math.random() * h);
-      const gh = Math.floor(8 + Math.random() * 22);
-      const shift = Math.floor((Math.random()-0.5) * (glitching ? 110 : 45));
-      try{
-        const band = ctx.getImageData(0, gy, w, gh);
-        ctx.putImageData(band, shift, gy);
-      }catch(_){}
-    }
-
-    try{
-      const hb = ctx.getImageData(0, Math.floor(headBandY), w, headBandH);
-      ctx.putImageData(hb, Math.floor(headShift), Math.floor(headBandY));
-    }catch(_){}
-
-    ctx.fillStyle = "rgba(0,0,0,0.10)";
-    ctx.fillRect(0,0,w,h);
-
-    return img; // return last frame pixels for stillness calc
+  if(!triggered){
+    if(still<900) hint.textContent="Hold still.";
+    else if(still<1700) hint.textContent="Stay.";
+    else if(still<NEED) hint.textContent="…";
+    else begin();
   }
 
-  function updateStillness(frameData, dt){
-    if (!frameData) return;
-
-    if (lastFrame){
-      let diff = 0;
-      // sample every ~256th byte to keep it light
-      for (let i = 0; i < frameData.data.length; i += 256){
-        diff += Math.abs(frameData.data[i] - lastFrame.data[i]);
-      }
-      // normalize diff into a "motion score"
-      const motion = diff / 1400; // empiric scaling
-
-      if (motion < MOTION_TOLERANCE){
-        stillMs += dt;
-      }else{
-        stillMs = Math.max(0, stillMs - dt*1.4); // decay rather than hard reset
-      }
-
-      // optional: update hint text as a subtle progress feel (still cryptic)
-      if (!portalArmed){
-        if (stillMs < 800) hint.textContent = "Hold still for a moment.";
-        else if (stillMs < 1600) hint.textContent = "Stay.";
-        else if (stillMs < REQUIRED_STILL_MS) hint.textContent = "…";
-        else hint.textContent = "Recognized.";
-      }
-
-      if (!portalArmed && stillMs >= REQUIRED_STILL_MS){
-        beginPortalAndRedirect();
-      }
-    }
-    lastFrame = frameData;
-  }
-
-  let lastT = performance.now();
-  function loop(){
-    if (!stream) return;
-
-    const now = performance.now();
-    const dt = now - lastT;
-    lastT = now;
-
-    const frame = draw();
-    updateStillness(frame, dt);
-
-    raf = requestAnimationFrame(loop);
-  }
-
-  btnCamera.onclick = startCam;
-  btnTry.onclick = startCam;
-  btnStop.onclick = stopCam;
-
-  document.addEventListener("visibilitychange",()=>{
-    if(document.hidden) stopCam();
-  });
-<script>
-  const SECRET_URL = "https://www.photonisdead.com/";
-
-  const vid = document.getElementById("vid");
-  const fx  = document.getElementById("fx");
-  const ctx = fx.getContext("2d", { willReadFrequently: true });
-
-  const btnCamera = document.getElementById("btnCamera");
-  const btnTry    = document.getElementById("btnTry");
-  const btnStop   = document.getElementById("btnStop");
-
-  const statusEl = document.getElementById("status");
-  const dot      = document.getElementById("dot");
-  const errEl    = document.getElementById("err");
-
-  const hint   = document.getElementById("hint");
-  const sub    = document.getElementById("sub");
-  const clock  = document.getElementById("clock");
-  const portal = document.getElementById("portal");
-
-  let stream = null;
-  let raf = null;
-
-  // ===== Stillness detection (RAW video, separate canvas) =====
-  const motionCanvas = document.createElement("canvas");
-  const mW = 80, mH = 45;          // low-res sample
-  motionCanvas.width = mW;
-  motionCanvas.height = mH;
-  const mCtx = motionCanvas.getContext("2d", { willReadFrequently: true });
-
-  let lastMotionFrame = null;
-  let stillMs = 0;
-  let portalArmed = false;
-  let tRedirect = null;
-
-  // Tuning knobs
-  const REQUIRED_STILL_MS = 2600;   // 2–3 seconds
-  const MOTION_THRESHOLD  = 8.5;    // higher = easier (good for most users)
-  const PORTAL_DELAY_MS   = 150;
-  const REDIRECT_AFTER_MS = 1650;   // should match portal animation length
-
-  // ===== VHS state (visual only) =====
-  let trackingPhase = Math.random() * 1000;
-  let glitchUntil = 0;
-
-  setInterval(() => {
-    const d = new Date();
-    clock.textContent =
-      d.getHours().toString().padStart(2,"0") + ":" +
-      d.getMinutes().toString().padStart(2,"0") + ":" +
-      d.getSeconds().toString().padStart(2,"0");
-  }, 300);
-
-  function setStatus(t, on=false){
-    statusEl.textContent = t;
-    dot.classList.toggle("on", on);
-  }
-  function showError(t){
-    errEl.style.display = "block";
-    errEl.textContent = t;
-  }
-  function clearError(){
-    errEl.style.display = "none";
-    errEl.textContent = "";
-  }
-
-  function size(){
-    const r = fx.getBoundingClientRect();
-    const dpr = Math.min(window.devicePixelRatio || 1, 2);
-    fx.width = Math.floor(r.width * dpr);
-    fx.height = Math.floor(r.height * dpr);
-  }
-  window.addEventListener("resize", size);
-
-  function clamp(v,a,b){ return Math.max(a, Math.min(b, v)); }
-
-  function resetGate(){
-    portal.classList.remove("on");
-    portalArmed = false;
-    stillMs = 0;
-    lastMotionFrame = null;
-    if (tRedirect){ clearTimeout(tRedirect); tRedirect = null; }
-  }
-
-  function beginPortalAndRedirect(){
-    if (portalArmed) return;
-    portalArmed = true;
-
-    hint.textContent = "Falling inward.";
-    sub.textContent  = "Recognized.";
-
-    setTimeout(() => {
-      portal.classList.add("on");
-      tRedirect = setTimeout(() => {
-        window.location.href = SECRET_URL;
-      }, REDIRECT_AFTER_MS);
-    }, PORTAL_DELAY_MS);
-  }
-
-  async function startCam(){
-    clearError();
-    resetGate();
-    document.body.classList.remove("mirroring");
-
-    btnTry.disabled = true;
-    hint.textContent = "Permission requested.";
-    sub.textContent  = "The gate opens in reflection.";
-
-    try{
-      stream = await navigator.mediaDevices.getUserMedia({
-        video:{ facingMode:"user" },
-        audio:false
-      });
-
-      vid.srcObject = stream;
-      await vid.play();
-
-      size();
-
-      btnStop.disabled = false;
-      setStatus("Mirror active", true);
-
-      // Move the UI off-screen so they can see themselves
-      document.body.classList.add("mirroring");
-      hint.textContent = "Hold still for a moment.";
-
-      lastT = performance.now();
-      loop();
-    }catch(e){
-      stream = null;
-      btnStop.disabled = true;
-      btnTry.disabled = false;
-
-      setStatus("Mirror denied", false);
-      showError("Reflection required.");
-      hint.textContent = "Try again.";
-      sub.textContent  = "The answer is not outside.";
-
-      document.body.classList.remove("mirroring");
-    }
-  }
-
-  function stopCam(){
-    if (raf) cancelAnimationFrame(raf);
-    resetGate();
-    document.body.classList.remove("mirroring");
-
-    if (stream){
-      stream.getTracks().forEach(t => t.stop());
-    }
-    stream = null;
-
-    btnStop.disabled = true;
-    btnTry.disabled = false;
-
-    setStatus("Mirror stopped", false);
-    showError("The loop resets.");
-    hint.textContent = "Look inward.";
-  }
-
-  // ===== Motion score from RAW video (no VHS noise) =====
-  function motionScoreFromVideo(){
-    // draw raw video frame into tiny canvas
-    // (mirrored video is fine—motion diff still works)
-    mCtx.drawImage(vid, 0, 0, mW, mH);
-
-    const frame = mCtx.getImageData(0,0,mW,mH);
-    const d = frame.data;
-
-    // convert to simple luminance array on the fly and diff vs last
-    let score = 0;
-
-    if (lastMotionFrame){
-      const p = lastMotionFrame.data;
-
-      // sample every pixel (already tiny)
-      for (let i=0; i<d.length; i+=4){
-        const y1 = (d[i]*0.2126 + d[i+1]*0.7152 + d[i+2]*0.0722);
-        const y0 = (p[i]*0.2126 + p[i+1]*0.7152 + p[i+2]*0.0722);
-        score += Math.abs(y1 - y0);
-      }
-
-      // normalize to ~0–20ish range typically
-      score = score / (mW*mH) / 3.2;
-    }
-
-    lastMotionFrame = frame;
-    return score;
-  }
-
-  function updateStillness(dt){
-    if (portalArmed) return;
-
-    const motion = motionScoreFromVideo();
-
-    if (motion < MOTION_THRESHOLD){
-      stillMs += dt;
-    } else {
-      // decay rather than reset (feels fair)
-      stillMs = Math.max(0, stillMs - dt*1.25);
-    }
-
-    // cryptic progress cues
-    if (stillMs < 900) hint.textContent = "Hold still for a moment.";
-    else if (stillMs < 1700) hint.textContent = "Stay.";
-    else if (stillMs < REQUIRED_STILL_MS) hint.textContent = "…";
-    else hint.textContent = "Recognized.";
-
-    if (stillMs >= REQUIRED_STILL_MS){
-      beginPortalAndRedirect();
-    }
-  }
-
-  // ===== Your VHS draw (unchanged conceptually) =====
-  function drawVHS(){
-    const w = fx.width, h = fx.height;
-    const now = performance.now();
-
-    if (Math.random() < 0.02) glitchUntil = now + 240 + Math.random()*220;
-    const glitching = now < glitchUntil;
-
-    const wobble = Math.sin((now + trackingPhase) * 0.0032) * 1.8;
-    const jitter = (Math.random() - 0.5) * (glitching ? 2.8 : 1.2);
-
-    ctx.save();
-    ctx.clearRect(0,0,w,h);
-    ctx.translate(wobble + jitter, 0);
-    ctx.drawImage(vid, 0, 0, w, h);
-    ctx.restore();
-
-    const img = ctx.getImageData(0,0,w,h);
-    const d = img.data;
-
-    const barY = (((now*0.10) + trackingPhase*33) % (h + 240)) - 120;
-    const barHalf = 26;
-
-    const headBandY = h * 0.87;
-    const headBandH = Math.max(12, Math.floor(h * 0.075));
-    const headShift = (Math.sin(now*0.022) * 10) + (Math.random()-0.5) * (glitching ? 14 : 7);
-
-    for (let y=0; y<h; y++){
-      const scanDarken = (y % 3 === 0) ? 0.88 : 1.00;
-      const inHeadBand = (y > headBandY && y < headBandY + headBandH);
-      const trackBoost = (Math.abs(y - barY) < barHalf) ? 1.16 : 1.0;
-
-      for (let x=0; x<w; x++){
-        const i = (y*w + x) * 4;
-
-        const r = d[i], g = d[i+1], b = d[i+2];
-        let yv = 0.2126*r + 0.7152*g + 0.0722*b;
-
-        yv = (yv - 128) * 1.22 + 128;
-
-        let rr = yv * 0.97;
-        let gg = yv * 0.99;
-        let bb = yv * 1.05;
-
-        // noise (visual only; no longer used for stillness)
-        const n = (Math.random() - 0.5) * (glitching ? 18 : 12);
-        rr += n; gg += n; bb += n;
-
-        rr *= trackBoost * scanDarken;
-        gg *= trackBoost * scanDarken;
-        bb *= trackBoost * scanDarken;
-
-        d[i]   = clamp(rr, 0, 255);
-        d[i+1] = clamp(gg, 0, 255);
-        d[i+2] = clamp(bb, 0, 255);
-
-        if (inHeadBand && x > 3){
-          const j = i - 12;
-          d[i]   = (d[i]   * 0.60 + d[j]   * 0.40);
-          d[i+1] = (d[i+1] * 0.60 + d[j+1] * 0.40);
-          d[i+2] = (d[i+2] * 0.60 + d[j+2] * 0.40);
-        }
-      }
-    }
-
-    ctx.putImageData(img, 0, 0);
-
-    if (glitching || Math.random() < 0.07){
-      const gy = Math.floor(Math.random() * h);
-      const gh = Math.floor(8 + Math.random() * 22);
-      const shift = Math.floor((Math.random()-0.5) * (glitching ? 110 : 45));
-      try{
-        const band = ctx.getImageData(0, gy, w, gh);
-        ctx.putImageData(band, shift, gy);
-      }catch(_){}
-    }
-
-    try{
-      const hb = ctx.getImageData(0, Math.floor(headBandY), w, headBandH);
-      ctx.putImageData(hb, Math.floor(headShift), Math.floor(headBandY));
-    }catch(_){}
-
-    ctx.fillStyle = "rgba(0,0,0,0.10)";
-    ctx.fillRect(0,0,w,h);
-  }
-
-  let lastT = performance.now();
-  function loop(){
-    if (!stream) return;
-
-    const now = performance.now();
-    const dt = now - lastT;
-    lastT = now;
-
-    // 1) draw your VHS camera view
-    drawVHS();
-
-    // 2) compute stillness from RAW video (NOT the VHS canvas)
-    updateStillness(dt);
-
-    raf = requestAnimationFrame(loop);
-  }
-
-  btnCamera.onclick = startCam;
-  btnTry.onclick = startCam;
-  btnStop.onclick = stopCam;
-
-  document.addEventListener("visibilitychange",()=>{
-    if(document.hidden) stopCam();
-  });
+  raf=requestAnimationFrame(loop);
+}
+
+start.onclick=startCam;
+stopBtn.onclick=stopCam;
+
+document.addEventListener("visibilitychange",()=>{
+  if(document.hidden) stopCam();
+});
 </script>
 
+</body>
+</html>
