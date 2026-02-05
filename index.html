@@ -199,6 +199,18 @@
       box-shadow:inset 0 0 0 1px rgba(255,255,255,.07);
       pointer-events:auto;
       backdrop-filter: blur(10px);
+
+      /* animation hooks */
+      transition: transform 520ms cubic-bezier(.14,.9,.18,1), opacity 420ms ease, filter 520ms ease;
+      will-change: transform, opacity, filter;
+    }
+
+    /* NEW: when mirroring, slide prompt up off the view */
+    body.mirroring .centerPrompt{
+      transform: translateY(-60vh);
+      opacity: 0.0;
+      filter: blur(2px);
+      pointer-events:none;
     }
 
     .title{
@@ -277,6 +289,7 @@
 
     @media(max-width:520px){
       .stage{ aspect-ratio:9/16; }
+      body.mirroring .centerPrompt{ transform: translateY(-80vh); }
     }
   </style>
 </head>
@@ -348,12 +361,10 @@
   let stream = null;
   let raf = null;
 
-  // timers for portal/redirect
   let tPortal = null;
   let tRedirect = null;
   let redirectArmed = false;
 
-  // VHS/CRT state
   let trackingPhase = Math.random() * 1000;
   let glitchUntil = 0;
 
@@ -403,21 +414,18 @@
     sub.textContent = "Recognized.";
     hint.textContent = "Falling inward.";
 
-    // portal after ~1.2s
-    tPortal = setTimeout(() => {
-      portal.classList.add("on");
-    }, 1200);
-
-    // redirect after ~2.2s
-    tRedirect = setTimeout(() => {
-      window.location.href = SECRET_URL;
-    }, 2200);
+    // Portal starts ~1.0s after enable, redirect at ~2.0s
+    tPortal = setTimeout(() => portal.classList.add("on"), 1000);
+    tRedirect = setTimeout(() => { window.location.href = SECRET_URL; }, 2000);
   }
 
   async function startCam(){
     clearError();
     portal.classList.remove("on");
     clearTimers();
+
+    // bring UI back if it was hidden
+    document.body.classList.remove("mirroring");
 
     btnTry.disabled = true;
     hint.textContent = "Permission requested.";
@@ -437,7 +445,10 @@
       btnStop.disabled = false;
       setStatus("Mirror active", true);
 
-      // As requested: trigger portal + redirect shortly after enable
+      // NEW: move prompt off-screen so they can see themselves
+      document.body.classList.add("mirroring");
+
+      // As requested: portal + redirect shortly after enable
       beginPortalAndRedirect();
 
       loop();
@@ -450,6 +461,8 @@
       showError("Reflection required.");
       hint.textContent = "Try again.";
       sub.textContent = "The answer is not outside.";
+
+      document.body.classList.remove("mirroring");
     }
   }
 
@@ -458,10 +471,11 @@
     clearTimers();
     portal.classList.remove("on");
 
+    document.body.classList.remove("mirroring");
+
     if (stream){
       stream.getTracks().forEach(t => t.stop());
     }
-
     stream = null;
 
     btnStop.disabled = true;
