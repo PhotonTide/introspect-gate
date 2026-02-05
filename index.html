@@ -27,17 +27,14 @@
     box-shadow:0 0 60px rgba(0,0,0,.8);
   }
 
-  video,canvas{
+  video{
     position:absolute;
     inset:0;
     width:100%;
     height:100%;
     object-fit:cover;
     transform:scaleX(-1);
-  }
-
-  /* Clean monochrome for reliable stillness */
-  video{
+    /* Clean monochrome for reliable stillness */
     filter: grayscale(100%) contrast(1.16) brightness(1.06);
   }
 
@@ -49,7 +46,7 @@
     grid-template-rows:auto 1fr auto;
     padding:18px;
     z-index:10;
-    pointer-events:none; /* default, selectively enable on interactive items */
+    pointer-events:none;
   }
 
   .top{
@@ -195,7 +192,7 @@
 
   .portal.on{
     opacity:1;
-    animation: fall 4200ms cubic-bezier(.10,.92,.16,1) forwards;
+    animation: fall 5200ms cubic-bezier(.10,.92,.16,1) forwards;
   }
 
   .portal::before{
@@ -211,8 +208,8 @@
     transform-origin: 50% 50%;
     /* very slow, hypnotic */
     animation:
-      slowSpin 24000ms linear infinite,
-      slowBreath 6400ms ease-in-out infinite;
+      slowSpin 30000ms linear infinite,
+      slowBreath 7200ms ease-in-out infinite;
     filter: contrast(1.25);
     mask-image: radial-gradient(circle,#000 0%,#000 72%,transparent 90%);
     -webkit-mask-image: radial-gradient(circle,#000 0%,#000 72%,transparent 90%);
@@ -235,19 +232,18 @@
 
   @keyframes slowBreath{
     0%   { filter: contrast(1.15) brightness(1.00); }
-    50%  { filter: contrast(1.35) brightness(1.05); }
+    50%  { filter: contrast(1.30) brightness(1.04); }
     100% { filter: contrast(1.15) brightness(1.00); }
   }
 
-  /* slow sink forward */
   @keyframes fall{
     0%   { transform: scale(1.0); filter: blur(0px); }
-    30%  { transform: scale(1.08); filter: blur(0.25px); }
-    65%  { transform: scale(1.32); filter: blur(0.65px); }
-    100% { transform: scale(2.05); filter: blur(1.25px); }
+    28%  { transform: scale(1.06); filter: blur(0.18px); }
+    62%  { transform: scale(1.22); filter: blur(0.55px); }
+    100% { transform: scale(2.00); filter: blur(1.20px); }
   }
 
-  /* ===== Coward “page” (same file, hash-routed) ===== */
+  /* ===== Coward “page” ===== */
   .cowardPage{
     position:absolute;
     inset:0;
@@ -266,7 +262,7 @@
     position:absolute;
     inset:-15%;
     opacity:.18;
-    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='900' height='500'%3E%3Crect width='100%25' height='100%25' fill='black'/%3E%3Cg fill='white' fill-opacity='0.85' font-family='Arial' font-weight='900'%3E%3Ctext x='0' y='120' font-size='140'%3ECOWARD%3C/text%3E%3Ctext x='140' y='280' font-size='140'%3ECOWARD%3C/text%3E%3Ctext x='40' y='450' font-size='140'%3ECOWARD%3C/text%3E%3C/g%3E%3C/svg%3E");
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='900' height='500'%3E%3Crect width='100%25' height='100%25' fill='black'/%3E%3Cg fill='white' fill-opacity='0.90' font-family='Arial' font-weight='900'%3E%3Ctext x='0' y='120' font-size='140'%3ECOWARD%3C/text%3E%3Ctext x='140' y='280' font-size='140'%3ECOWARD%3C/text%3E%3Ctext x='40' y='450' font-size='140'%3ECOWARD%3C/text%3E%3C/g%3E%3C/svg%3E");
     background-size: 760px 520px;
     background-repeat: repeat;
     transform: rotate(-10deg) scale(1.12);
@@ -389,22 +385,28 @@
 
   // Motion detection canvas (tiny, stable)
   const mCan = document.createElement("canvas");
-  mCan.width = 80;
-  mCan.height = 45;
+  mCan.width = 96;
+  mCan.height = 54;
   const mCtx = mCan.getContext("2d", { willReadFrequently: true });
 
   let last = null;
   let still = 0;
   let triggered = false;
 
-  // You asked for 7 seconds
+  // Require 7 seconds of stillness
   const NEED = 7000;     // ms
-  const THRESH = 7.8;    // motion tolerance (higher = easier)
+
+  // FIX: stricter threshold so movement actually breaks progress
+  const THRESH = 5.0;    // lower = stricter (prevents accidental triggers)
+
+  // Optional "must be currently still" gate
+  const QUIET_NOW = 2.5;
+
   const PORTAL_DELAY = 240;
-  const REDIRECT_AFTER = 3800; // allow the slower portal to “sink” before redirect
+  const REDIRECT_AFTER = 5200; // matches the slower fall feel
 
   function setClock(){
-    const d = new Date();
+    const d=new Date();
     clock.textContent =
       d.getHours().toString().padStart(2,"0") + ":" +
       d.getMinutes().toString().padStart(2,"0") + ":" +
@@ -436,7 +438,6 @@
   }
 
   async function startCam(){
-    // If on coward page, return to main route
     if (location.hash === "#coward") location.hash = "";
 
     resetGate();
@@ -488,7 +489,6 @@
   }
 
   function goCoward(){
-    // Keep the “enable mirror” experience — but STOP routes to coward page
     stopCam();
     location.hash = "#coward";
     document.body.classList.add("coward");
@@ -503,18 +503,24 @@
   }
 
   function motionScore(){
-    // raw frame (no added noise), low-res
-    mCtx.drawImage(vid, 0, 0, 80, 45);
-    const f = mCtx.getImageData(0, 0, 80, 45);
+    if (!vid.videoWidth || !vid.videoHeight) return 999;
+
+    // sample raw camera frame at low res
+    mCtx.drawImage(vid, 0, 0, mCan.width, mCan.height);
+    const f = mCtx.getImageData(0, 0, mCan.width, mCan.height);
     let s = 0;
 
     if (last){
-      for (let i = 0; i < f.data.length; i += 4){
-        const y1 = f.data[i];      // already grayscale-ish
-        const y0 = last.data[i];
+      const A = f.data;
+      const B = last.data;
+      // sample every other pixel for speed
+      for (let i = 0; i < A.length; i += 8){
+        const y1 = A[i]; // red channel is enough (already grayscale-ish)
+        const y0 = B[i];
         s += Math.abs(y1 - y0);
       }
-      s = s / (80 * 45) / 3;
+      // normalize
+      s = s / (mCan.width * mCan.height) / 2.6;
     }
 
     last = f;
@@ -534,15 +540,19 @@
     if (m < THRESH){
       still += dt;
     } else {
-      // decay (fairer than a full reset)
-      still = Math.max(0, still - dt * 1.15);
+      // FIX: stronger reset when movement occurs
+      still = Math.max(0, still - dt * 2.8);
     }
 
     if (!triggered){
       if (still < 2000) hint.textContent = "Hold still. Be present.";
       else if (still < 4500) hint.textContent = "Stay.";
       else if (still < NEED) hint.textContent = "…";
-      else beginPortal();
+      else {
+        // FIX: only trigger if they are ALSO currently still right now
+        if (m < QUIET_NOW) beginPortal();
+        else still = Math.max(0, still - 600); // nudge them back if they move at the finish line
+      }
     }
 
     raf = requestAnimationFrame(loop);
