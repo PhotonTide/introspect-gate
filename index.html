@@ -34,7 +34,6 @@
     height:100%;
     object-fit:cover;
     transform:scaleX(-1);
-    /* Clean monochrome for reliable stillness */
     filter: grayscale(100%) contrast(1.16) brightness(1.06);
   }
 
@@ -57,7 +56,6 @@
     user-select:none;
   }
 
-  /* Black text (requested) on a pale pill so it stays readable on the camera */
   .instruction{
     pointer-events:none;
     display:inline-flex;
@@ -79,7 +77,7 @@
     display:flex;
     align-items:center;
     gap:10px;
-    pointer-events:auto; /* allow Stop button clicks */
+    pointer-events:auto;
   }
 
   .clock{
@@ -119,7 +117,6 @@
     max-width:min(86vw,640px);
   }
 
-  /* Hide prompt once mirroring so users can see themselves */
   body.mirroring .center{
     transform:translateY(-60vh);
     opacity:0;
@@ -206,7 +203,6 @@
         #000 7px,
         #000 20px);
     transform-origin: 50% 50%;
-    /* very slow, hypnotic */
     animation:
       slowSpin 30000ms linear infinite,
       slowBreath 7200ms ease-in-out infinite;
@@ -393,17 +389,94 @@
   let still = 0;
   let triggered = false;
 
-  // Require 7 seconds of stillness
-  const NEED = 7000;     // ms
-
-  // FIX: stricter threshold so movement actually breaks progress
-  const THRESH = 5.0;    // lower = stricter (prevents accidental triggers)
-
-  // Optional "must be currently still" gate
-  const QUIET_NOW = 2.5;
+  // Stillness settings
+  const NEED = 7000;      // ms (7 seconds)
+  const THRESH = 5.0;     // stricter threshold (lower = stricter)
+  const QUIET_NOW = 2.5;  // must be currently still at unlock moment
 
   const PORTAL_DELAY = 240;
-  const REDIRECT_AFTER = 5200; // matches the slower fall feel
+  const REDIRECT_AFTER = 5200;
+
+  // ===== Ambient sound (procedural, no files) =====
+  // Subtle “breathing drone” + faint shimmer. Starts only after user gesture.
+  let audioCtx = null;
+  let master = null;
+  let droneOsc = null;
+  let shimmerOsc = null;
+  let lfo = null;
+  let lfoGain = null;
+
+  function startAmbient(){
+    if (audioCtx) return;
+
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+    master = audioCtx.createGain();
+    master.gain.value = 0.0;
+    master.connect(audioCtx.destination);
+
+    // Drone: low sine
+    droneOsc = audioCtx.createOscillator();
+    droneOsc.type = "sine";
+    droneOsc.frequency.value = 48; // low fundamental
+
+    const droneGain = audioCtx.createGain();
+    droneGain.gain.value = 0.26;
+
+    // Shimmer: very quiet triangle above
+    shimmerOsc = audioCtx.createOscillator();
+    shimmerOsc.type = "triangle";
+    shimmerOsc.frequency.value = 192;
+
+    const shimmerGain = audioCtx.createGain();
+    shimmerGain.gain.value = 0.05;
+
+    // Gentle LFO to make it “breathe”
+    lfo = audioCtx.createOscillator();
+    lfo.type = "sine";
+    lfo.frequency.value = 0.07; // slow
+
+    lfoGain = audioCtx.createGain();
+    lfoGain.gain.value = 10; // mod depth in Hz
+
+    lfo.connect(lfoGain);
+    lfoGain.connect(droneOsc.frequency);
+
+    droneOsc.connect(droneGain);
+    shimmerOsc.connect(shimmerGain);
+
+    droneGain.connect(master);
+    shimmerGain.connect(master);
+
+    droneOsc.start();
+    shimmerOsc.start();
+    lfo.start();
+
+    // fade in
+    master.gain.setValueAtTime(0.0, audioCtx.currentTime);
+    master.gain.linearRampToValueAtTime(0.16, audioCtx.currentTime + 1.2);
+  }
+
+  function stopAmbient(){
+    if (!audioCtx) return;
+
+    // fade out then stop
+    const t = audioCtx.currentTime;
+    master.gain.cancelScheduledValues(t);
+    master.gain.setValueAtTime(master.gain.value, t);
+    master.gain.linearRampToValueAtTime(0.0, t + 0.6);
+
+    setTimeout(() => {
+      try{
+        droneOsc?.stop();
+        shimmerOsc?.stop();
+        lfo?.stop();
+      }catch(_){}
+      audioCtx.close().catch(()=>{});
+      audioCtx = null;
+      master = droneOsc = shimmerOsc = lfo = lfoGain = null;
+    }, 650);
+  }
 
   function setClock(){
     const d=new Date();
@@ -429,6 +502,16 @@
     hint.textContent = "Falling inward.";
     sub.textContent = "Recognized.";
 
+    // deepen audio slightly during portal
+    if (audioCtx && master){
+      const t = audioCtx.currentTime;
+      master.gain.cancelScheduledValues(t);
+      master.gain.setValueAtTime(master.gain.value, t);
+      master.gain.linearRampToValueAtTime(0.22, t + 1.2);
+      // slow shimmer a touch
+      try{ shimmerOsc.frequency.setTargetAtTime(168, t, 0.9); }catch(_){}
+    }
+
     setTimeout(() => {
       portal.classList.add("on");
       setTimeout(() => {
@@ -445,6 +528,9 @@
     document.body.classList.remove("mirroring");
 
     try{
+      // must be called after a user gesture to satisfy autoplay policies
+      startAmbient();
+
       stream = await navigator.mediaDevices.getUserMedia({ video:true, audio:false });
       vid.srcObject = stream;
       await vid.play();
@@ -456,7 +542,6 @@
       hint.textContent = "Hold still. Be present.";
       sub.textContent = "The gate opens in reflection.";
 
-      // move prompt off-screen
       document.body.classList.add("mirroring");
 
       lastT = performance.now();
@@ -466,6 +551,7 @@
       hint.textContent = "Reflection required.";
       startBtn.disabled = false;
       stopTop.disabled = true;
+      stopAmbient();
     }
   }
 
@@ -486,6 +572,7 @@
 
     document.body.classList.remove("mirroring");
     resetGate();
+    stopAmbient();
   }
 
   function goCoward(){
@@ -505,7 +592,6 @@
   function motionScore(){
     if (!vid.videoWidth || !vid.videoHeight) return 999;
 
-    // sample raw camera frame at low res
     mCtx.drawImage(vid, 0, 0, mCan.width, mCan.height);
     const f = mCtx.getImageData(0, 0, mCan.width, mCan.height);
     let s = 0;
@@ -513,13 +599,11 @@
     if (last){
       const A = f.data;
       const B = last.data;
-      // sample every other pixel for speed
       for (let i = 0; i < A.length; i += 8){
-        const y1 = A[i]; // red channel is enough (already grayscale-ish)
+        const y1 = A[i];
         const y0 = B[i];
         s += Math.abs(y1 - y0);
       }
-      // normalize
       s = s / (mCan.width * mCan.height) / 2.6;
     }
 
@@ -540,7 +624,6 @@
     if (m < THRESH){
       still += dt;
     } else {
-      // FIX: stronger reset when movement occurs
       still = Math.max(0, still - dt * 2.8);
     }
 
@@ -549,9 +632,9 @@
       else if (still < 4500) hint.textContent = "Stay.";
       else if (still < NEED) hint.textContent = "…";
       else {
-        // FIX: only trigger if they are ALSO currently still right now
+        // Only trigger if they're also currently still right now
         if (m < QUIET_NOW) beginPortal();
-        else still = Math.max(0, still - 600); // nudge them back if they move at the finish line
+        else still = Math.max(0, still - 700);
       }
     }
 
