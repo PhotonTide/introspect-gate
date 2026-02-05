@@ -3,376 +3,520 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-
 <title>SPIRAL IN</title>
 
 <style>
-html,body{
-  height:100%;
-  margin:0;
-  background:#000;
-  color:#fff;
-  overflow:hidden;
-  font-family:system-ui,Arial,sans-serif;
-}
+  html,body{
+    height:100%;
+    margin:0;
+    background:#000;
+    color:#fff;
+    overflow:hidden;
+    font-family:system-ui,Arial,sans-serif;
+  }
 
-.wrap{
-  height:100%;
-  display:grid;
-  place-items:center;
-}
+  .wrap{
+    height:100%;
+    display:grid;
+    place-items:center;
+  }
 
-.stage{
-  position:relative;
-  width:min(92vw,900px);
-  aspect-ratio:16/9;
-  border-radius:18px;
-  overflow:hidden;
-  background:#000;
-  box-shadow:0 0 60px rgba(0,0,0,.8);
-}
+  .stage{
+    position:relative;
+    width:min(92vw,900px);
+    aspect-ratio:16/9;
+    border-radius:18px;
+    overflow:hidden;
+    background:#000;
+    box-shadow:0 0 60px rgba(0,0,0,.8);
+  }
 
-video,canvas{
-  position:absolute;
-  inset:0;
-  width:100%;
-  height:100%;
-  object-fit:cover;
-  transform:scaleX(-1);
-}
+  video,canvas{
+    position:absolute;
+    inset:0;
+    width:100%;
+    height:100%;
+    object-fit:cover;
+    transform:scaleX(-1);
+  }
 
-/* Force black & white */
-video{
-  filter: grayscale(100%) contrast(1.15);
-}
+  /* Clean monochrome for reliable stillness */
+  video{
+    filter: grayscale(100%) contrast(1.18) brightness(1.02);
+  }
 
-/* Portal */
-.portal{
-  position:absolute;
-  inset:0;
-  pointer-events:none;
-  opacity:0;
-  z-index:50;
-}
+  /* ===== HUD ===== */
+  .hud{
+    position:absolute;
+    inset:0;
+    display:grid;
+    grid-template-rows:auto 1fr auto;
+    padding:18px;
+    pointer-events:none;
+    z-index:10;
+  }
 
-.portal.on{
-  opacity:1;
-  animation:fall 1800ms cubic-bezier(.12,.9,.18,1) forwards;
-}
+  .top{
+    display:flex;
+    justify-content:space-between;
+    font-size:12px;
+    letter-spacing:.2em;
+    text-transform:uppercase;
+    opacity:.58;
+    user-select:none;
+  }
 
-.portal::before{
-  content:"";
-  position:absolute;
-  inset:-25%;
-  background:
-    repeating-radial-gradient(circle,
-      #fff 0px,
-      #fff 6px,
-      #000 6px,
-      #000 14px);
-  filter:contrast(1.2);
-  animation:spin 2600ms linear infinite;
-  mask-image:radial-gradient(circle,#000 0%,#000 65%,transparent 85%);
-}
+  .center{
+    align-self:center;
+    justify-self:center;
+    background:rgba(0,0,0,.62);
+    padding:24px 22px;
+    border-radius:16px;
+    text-align:center;
+    pointer-events:auto;
+    transition:.6s cubic-bezier(.14,.9,.18,1);
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,.08);
+    backdrop-filter: blur(8px);
+  }
 
-.portal::after{
-  content:"";
-  position:absolute;
-  inset:0;
-  background:radial-gradient(circle,
-    transparent 0%,
-    rgba(0,0,0,.4) 55%,
-    #000 100%);
-}
+  body.mirroring .center{
+    transform:translateY(-60vh);
+    opacity:0;
+    filter:blur(2px);
+    pointer-events:none;
+  }
 
-@keyframes spin{
-  from{transform:rotate(0deg) scale(.9);}
-  to{transform:rotate(360deg) scale(1.3);}
-}
+  h1{
+    margin:0 0 10px;
+    letter-spacing:.2em;
+    text-transform:uppercase;
+    font-size:22px;
+  }
 
-@keyframes fall{
-  0%{transform:scale(1);filter:blur(0);}
-  60%{transform:scale(1.5);filter:blur(.8px);}
-  100%{transform:scale(2.2);filter:blur(1.4px);}
-}
+  p{
+    margin:0 0 16px;
+    opacity:.72;
+    font-size:13px;
+    line-height:1.45;
+  }
 
-/* HUD */
+  .row{
+    display:flex;
+    gap:10px;
+    justify-content:center;
+    flex-wrap:wrap;
+  }
 
-.hud{
-  position:absolute;
-  inset:0;
-  display:grid;
-  grid-template-rows:auto 1fr auto;
-  padding:18px;
-  pointer-events:none;
-}
+  button{
+    border:0;
+    border-radius:999px;
+    padding:10px 14px;
+    background:rgba(255,255,255,.10);
+    color:#fff;
+    font-size:11px;
+    letter-spacing:.15em;
+    text-transform:uppercase;
+    cursor:pointer;
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,.10);
+  }
+  button:hover{ background:rgba(255,255,255,.18); }
+  button[disabled]{ opacity:.35; cursor:not-allowed; }
 
-.top{
-  display:flex;
-  justify-content:space-between;
-  font-size:12px;
-  letter-spacing:.2em;
-  opacity:.5;
-}
+  .hint{
+    margin-top:12px;
+    font-size:12px;
+    opacity:.55;
+    letter-spacing:.08em;
+    user-select:none;
+  }
 
-.center{
-  align-self:center;
-  justify-self:center;
-  background:rgba(0,0,0,.6);
-  padding:24px;
-  border-radius:16px;
-  text-align:center;
-  pointer-events:auto;
-  transition:.6s ease;
-}
+  .bottom{
+    display:flex;
+    justify-content:space-between;
+    font-size:11px;
+    letter-spacing:.15em;
+    text-transform:uppercase;
+    opacity:.55;
+    user-select:none;
+  }
 
-body.mirroring .center{
-  transform:translateY(-60vh);
-  opacity:0;
-  filter:blur(2px);
-  pointer-events:none;
-}
+  /* ===== Portal (slower sinking concentric spiral) ===== */
+  .portal{
+    position:absolute;
+    inset:0;
+    pointer-events:none;
+    opacity:0;
+    z-index:50;
+  }
 
-h1{
-  margin:0 0 10px;
-  letter-spacing:.2em;
-  text-transform:uppercase;
-}
+  .portal.on{
+    opacity:1;
+    animation: fall 2600ms cubic-bezier(.10,.92,.16,1) forwards;
+  }
 
-p{
-  margin:0 0 16px;
-  opacity:.7;
-  font-size:13px;
-}
+  .portal::before{
+    content:"";
+    position:absolute;
+    inset:-30%;
+    background:
+      repeating-radial-gradient(circle,
+        #fff 0px,
+        #fff 6px,
+        #000 6px,
+        #000 16px);
+    filter: contrast(1.25);
+    transform-origin: 50% 50%;
+    /* slower, hypnotic */
+    animation: slowSpin 9000ms linear infinite, slowBreath 3800ms ease-in-out infinite;
+    mask-image: radial-gradient(circle,#000 0%,#000 70%,transparent 88%);
+    -webkit-mask-image: radial-gradient(circle,#000 0%,#000 70%,transparent 88%);
+  }
 
-.row{
-  display:flex;
-  gap:10px;
-  justify-content:center;
-}
+  .portal::after{
+    content:"";
+    position:absolute;
+    inset:0;
+    background:radial-gradient(circle,
+      rgba(0,0,0,0) 0%,
+      rgba(0,0,0,.35) 56%,
+      #000 100%);
+  }
 
-button{
-  border:0;
-  border-radius:999px;
-  padding:10px 14px;
-  background:rgba(255,255,255,.1);
-  color:#fff;
-  font-size:11px;
-  letter-spacing:.15em;
-  text-transform:uppercase;
-  cursor:pointer;
-}
+  @keyframes slowSpin{
+    from{ transform: rotate(0deg) scale(0.92); }
+    to  { transform: rotate(360deg) scale(1.12); }
+  }
 
-button:hover{background:rgba(255,255,255,.18);}
-button[disabled]{opacity:.35}
+  /* subtle pulsing = “psychedelic sinking” without turning into static */
+  @keyframes slowBreath{
+    0%   { filter: contrast(1.15) brightness(1.00); }
+    50%  { filter: contrast(1.35) brightness(1.06); }
+    100% { filter: contrast(1.15) brightness(1.00); }
+  }
 
-.hint{
-  margin-top:12px;
-  font-size:12px;
-  opacity:.5;
-}
+  @keyframes fall{
+    0%   { transform: scale(1.0); filter: blur(0px); }
+    35%  { transform: scale(1.15); filter: blur(0.3px); }
+    70%  { transform: scale(1.55); filter: blur(0.9px); }
+    100% { transform: scale(2.25); filter: blur(1.5px); }
+  }
 
-.bottom{
-  display:flex;
-  justify-content:space-between;
-  font-size:11px;
-  letter-spacing:.15em;
-  opacity:.5;
-}
+  /* ===== Coward “page” ===== */
+  .cowardPage{
+    position:absolute;
+    inset:0;
+    background:#000;
+    z-index:100;
+    display:none;
+    overflow:hidden;
+    align-items:center;
+    justify-content:center;
+  }
+  body.coward .cowardPage{ display:flex; }
+
+  /* giant repeated text using an SVG background */
+  .cowardPage::before{
+    content:"";
+    position:absolute;
+    inset:-10%;
+    opacity:.16;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='900' height='500'%3E%3Crect width='100%25' height='100%25' fill='black'/%3E%3Cg fill='white' fill-opacity='0.75' font-family='Arial' font-weight='800'%3E%3Ctext x='0' y='120' font-size='120'%3ECOWARD%3C/text%3E%3Ctext x='120' y='260' font-size='120'%3ECOWARD%3C/text%3E%3Ctext x='40' y='400' font-size='120'%3ECOWARD%3C/text%3E%3C/g%3E%3C/svg%3E");
+    background-size: 700px 420px;
+    background-repeat: repeat;
+    transform: rotate(-8deg) scale(1.1);
+    filter: blur(0.2px);
+  }
+
+  .cowardInner{
+    position:relative;
+    text-align:center;
+    padding:28px 22px;
+    border-radius:18px;
+    background:rgba(0,0,0,.45);
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,.08);
+    backdrop-filter: blur(10px);
+    max-width:min(82vw,720px);
+  }
+
+  .cowardInner h2{
+    margin:0 0 14px;
+    font-size: clamp(44px, 7vw, 92px);
+    letter-spacing:.22em;
+    text-transform:uppercase;
+    line-height:1;
+  }
+
+  .cowardInner .small{
+    margin:0 0 18px;
+    opacity:.62;
+    letter-spacing:.12em;
+    text-transform:uppercase;
+    font-size:12px;
+  }
+
+  .cowardInner .backBtn{
+    pointer-events:auto;
+    border:0;
+    border-radius:999px;
+    padding:12px 16px;
+    background:rgba(255,255,255,.12);
+    color:#fff;
+    font-size:11px;
+    letter-spacing:.15em;
+    text-transform:uppercase;
+    cursor:pointer;
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,.10);
+  }
+  .cowardInner .backBtn:hover{ background:rgba(255,255,255,.18); }
+
+  @media(max-width:520px){
+    .stage{ aspect-ratio:9/16; }
+    body.mirroring .center{ transform:translateY(-80vh); }
+  }
 </style>
 </head>
 
 <body>
 <div class="wrap">
-<div class="stage">
+  <div class="stage">
 
-<video id="vid" autoplay muted playsinline></video>
-<canvas id="fx"></canvas>
+    <video id="vid" autoplay muted playsinline></video>
+    <canvas id="fx"></canvas>
 
-<div class="portal" id="portal"></div>
+    <div class="portal" id="portal"></div>
 
-<div class="hud">
+    <!-- Coward route/page -->
+    <div class="cowardPage" id="cowardPage">
+      <div class="cowardInner">
+        <h2>COWARD</h2>
+        <div class="small">You looked away.</div>
+        <button class="backBtn" id="backBtn">Go back</button>
+      </div>
+    </div>
 
-<div class="top">
-  <div>SPIRAL IN</div>
-  <div id="clock">—</div>
-</div>
+    <div class="hud">
+      <div class="top">
+        <div>HOLD STILL, BE PRESENT</div>
+        <div id="clock">—</div>
+      </div>
 
-<div class="center">
-  <h1>Look inward.</h1>
-  <p id="sub">The gate opens in reflection.</p>
+      <div class="center">
+        <h1>Spiral in.</h1>
+        <p id="sub">The gate opens in reflection.</p>
 
-  <div class="row">
-    <button id="start">Enable Mirror</button>
-    <button id="stop" disabled>Stop</button>
+        <div class="row">
+          <button id="start">Enable Mirror</button>
+          <button id="stop" disabled>Stop</button>
+        </div>
+
+        <div class="hint" id="hint">Hold still.</div>
+      </div>
+
+      <div class="bottom">
+        <div id="status">Mirror idle</div>
+        <div></div>
+      </div>
+    </div>
+
   </div>
-
-  <div class="hint" id="hint">Hold still.</div>
-</div>
-
-<div class="bottom">
-  <div id="status">Mirror idle</div>
-  <div></div>
-</div>
-
-</div>
-</div>
 </div>
 
 <script>
-const SECRET_URL = "https://www.photonisdead.com/";
+  const SECRET_URL = "https://www.photonisdead.com/";
 
-const vid = document.getElementById("vid");
-const start = document.getElementById("start");
-const stopBtn = document.getElementById("stop");
+  const vid = document.getElementById("vid");
+  const startBtn = document.getElementById("start");
+  const stopBtn = document.getElementById("stop");
 
-const hint = document.getElementById("hint");
-const sub = document.getElementById("sub");
-const status = document.getElementById("status");
-const portal = document.getElementById("portal");
-const clock = document.getElementById("clock");
+  const hint = document.getElementById("hint");
+  const sub = document.getElementById("sub");
+  const statusEl = document.getElementById("status");
+  const portal = document.getElementById("portal");
+  const clock = document.getElementById("clock");
 
-let stream=null;
-let raf=null;
+  const cowardPage = document.getElementById("cowardPage");
+  const backBtn = document.getElementById("backBtn");
 
-/* Motion detection canvas */
-const mCan = document.createElement("canvas");
-mCan.width=80;
-mCan.height=45;
-const mCtx = mCan.getContext("2d");
+  let stream=null;
+  let raf=null;
 
-let last=null;
-let still=0;
-let triggered=false;
+  // Motion detection canvas (tiny, fast, stable)
+  const mCan = document.createElement("canvas");
+  mCan.width=80;
+  mCan.height=45;
+  const mCtx = mCan.getContext("2d", { willReadFrequently: true });
 
-/* Tuning */
-const NEED=2600;        // ms
-const THRESH=7.5;       // motion tolerance
+  let last=null;
+  let still=0;
+  let triggered=false;
 
-setInterval(()=>{
-  const d=new Date();
-  clock.textContent=
-    d.getHours().toString().padStart(2,"0")+":"+
-    d.getMinutes().toString().padStart(2,"0")+":"+
-    d.getSeconds().toString().padStart(2,"0");
-},300);
+  // Tuning (you asked for 7 seconds)
+  const NEED=7000;   // ms
+  const THRESH=7.5;  // motion tolerance (higher = easier)
+  const PORTAL_DELAY=200;
+  const REDIRECT_AFTER=2400; // allow the slower portal to “land” first
 
-function reset(){
-  portal.classList.remove("on");
-  triggered=false;
-  still=0;
-  last=null;
-}
+  function setClock(){
+    const d=new Date();
+    clock.textContent =
+      d.getHours().toString().padStart(2,"0")+":"+
+      d.getMinutes().toString().padStart(2,"0")+":"+
+      d.getSeconds().toString().padStart(2,"0");
+  }
+  setClock();
+  setInterval(setClock, 350);
 
-function begin(){
-  if(triggered) return;
-  triggered=true;
+  function resetGate(){
+    portal.classList.remove("on");
+    triggered=false;
+    still=0;
+    last=null;
+  }
 
-  hint.textContent="Falling inward.";
-  sub.textContent="Recognized.";
+  function beginPortal(){
+    if(triggered) return;
+    triggered=true;
 
-  setTimeout(()=>{
-    portal.classList.add("on");
+    hint.textContent="Falling inward.";
+    sub.textContent="Recognized.";
+
     setTimeout(()=>{
-      location.href=SECRET_URL;
-    },1700);
-  },150);
-}
-
-async function startCam(){
-  reset();
-  document.body.classList.remove("mirroring");
-
-  try{
-    stream=await navigator.mediaDevices.getUserMedia({video:true});
-    vid.srcObject=stream;
-    await vid.play();
-
-    start.disabled=true;
-    stopBtn.disabled=false;
-
-    status.textContent="Mirror active";
-    hint.textContent="Hold still.";
-    document.body.classList.add("mirroring");
-
-    lastT=performance.now();
-    loop();
-
-  }catch(e){
-    status.textContent="Denied";
-  }
-}
-
-function stopCam(){
-  if(raf) cancelAnimationFrame(raf);
-
-  if(stream){
-    stream.getTracks().forEach(t=>t.stop());
+      portal.classList.add("on");
+      setTimeout(()=>{
+        window.location.href = SECRET_URL;
+      }, REDIRECT_AFTER);
+    }, PORTAL_DELAY);
   }
 
-  stream=null;
-  reset();
+  async function startCam(){
+    // if on coward page, return to main
+    if(location.hash === "#coward") location.hash = "";
 
-  start.disabled=false;
-  stopBtn.disabled=true;
+    resetGate();
+    document.body.classList.remove("coward");
+    document.body.classList.remove("mirroring");
 
-  status.textContent="Mirror stopped";
-  hint.textContent="Look inward.";
+    try{
+      stream = await navigator.mediaDevices.getUserMedia({ video:true, audio:false });
+      vid.srcObject=stream;
+      await vid.play();
 
-  document.body.classList.remove("mirroring");
-}
+      startBtn.disabled=true;
+      stopBtn.disabled=false;
 
-function motionScore(){
-  mCtx.drawImage(vid,0,0,80,45);
-  const f=mCtx.getImageData(0,0,80,45);
-  let s=0;
+      statusEl.textContent="Mirror active";
+      hint.textContent="Hold still. Be present.";
 
-  if(last){
-    for(let i=0;i<f.data.length;i+=4){
-      const y1=f.data[i];
-      const y0=last.data[i];
-      s+=Math.abs(y1-y0);
+      // move prompt off-screen
+      document.body.classList.add("mirroring");
+
+      lastT=performance.now();
+      loop();
+    }catch(e){
+      statusEl.textContent="Denied";
+      hint.textContent="Reflection required.";
+      startBtn.disabled=false;
+      stopBtn.disabled=true;
     }
-    s=s/(80*45)/3;
   }
 
-  last=f;
-  return s;
-}
+  function stopCam(){
+    if(raf) cancelAnimationFrame(raf);
+    raf=null;
 
-let lastT=performance.now();
+    if(stream){
+      stream.getTracks().forEach(t=>t.stop());
+    }
+    stream=null;
 
-function loop(){
-  if(!stream) return;
+    startBtn.disabled=false;
+    stopBtn.disabled=true;
 
-  const now=performance.now();
-  const dt=now-lastT;
-  lastT=now;
+    statusEl.textContent="Mirror stopped";
+    hint.textContent="Look inward.";
 
-  const m=motionScore();
-
-  if(m<THRESH){
-    still+=dt;
-  }else{
-    still=Math.max(0,still-dt);
+    document.body.classList.remove("mirroring");
+    resetGate();
   }
 
-  if(!triggered){
-    if(still<900) hint.textContent="Hold still.";
-    else if(still<1700) hint.textContent="Stay.";
-    else if(still<NEED) hint.textContent="…";
-    else begin();
+  function goCoward(){
+    // stop cam + route to coward page
+    stopCam();
+    location.hash = "#coward";
+    document.body.classList.add("coward");
   }
 
-  raf=requestAnimationFrame(loop);
-}
+  function backFromCoward(){
+    location.hash = "";
+    document.body.classList.remove("coward");
+    statusEl.textContent="Mirror idle";
+    hint.textContent="Hold still.";
+    sub.textContent="The gate opens in reflection.";
+  }
 
-start.onclick=startCam;
-stopBtn.onclick=stopCam;
+  function motionScore(){
+    // raw frame (no effects)
+    mCtx.drawImage(vid,0,0,80,45);
+    const f=mCtx.getImageData(0,0,80,45);
+    let s=0;
 
-document.addEventListener("visibilitychange",()=>{
-  if(document.hidden) stopCam();
-});
+    if(last){
+      for(let i=0;i<f.data.length;i+=4){
+        const y1=f.data[i];      // already grayscale-ish from video filter
+        const y0=last.data[i];
+        s += Math.abs(y1-y0);
+      }
+      s = s/(80*45)/3;
+    }
+    last=f;
+    return s;
+  }
+
+  let lastT=performance.now();
+  function loop(){
+    if(!stream) return;
+
+    const now=performance.now();
+    const dt=now-lastT;
+    lastT=now;
+
+    const m = motionScore();
+
+    if(m < THRESH){
+      still += dt;
+    }else{
+      // decay (feels fair)
+      still = Math.max(0, still - dt*1.15);
+    }
+
+    if(!triggered){
+      if(still < 1500) hint.textContent="Hold still. Be present.";
+      else if(still < 3500) hint.textContent="Stay.";
+      else if(still < NEED) hint.textContent="…";
+      else beginPortal();
+    }
+
+    raf = requestAnimationFrame(loop);
+  }
+
+  // hash routing (so it feels like another page)
+  function syncRoute(){
+    if(location.hash === "#coward"){
+      document.body.classList.add("coward");
+    }else{
+      document.body.classList.remove("coward");
+    }
+  }
+  window.addEventListener("hashchange", syncRoute);
+  syncRoute();
+
+  startBtn.onclick = startCam;
+  stopBtn.onclick = goCoward;
+  backBtn.onclick = backFromCoward;
+
+  document.addEventListener("visibilitychange",()=>{
+    if(document.hidden) stopCam();
+  });
 </script>
 
 </body>
