@@ -37,7 +37,6 @@
     filter: grayscale(100%) contrast(1.16) brightness(1.06);
   }
 
-  /* ===== HUD ===== */
   .hud{
     position:absolute;
     inset:0;
@@ -178,133 +177,66 @@
     user-select:none;
   }
 
-  /* ===== NEW Spiral “draw-in” overlay ===== */
   .portal{
     position:absolute;
     inset:0;
     pointer-events:none;
     opacity:0;
     z-index:50;
-    background:#000;
   }
 
-  /* We draw the spiral in via CSS variable: --p in [0..1] */
+  .portal.on{
+    opacity:1;
+    animation: fall 5600ms cubic-bezier(.10,.92,.16,1) forwards;
+  }
+
   .portal::before{
     content:"";
     position:absolute;
-    inset:-15%;
+    inset:-35%;
     background:
-      conic-gradient(from 90deg,
-        #fff 0deg 7deg,
-        #000 7deg 14deg,
-        #fff 14deg 21deg,
-        #000 21deg 28deg,
-        #fff 28deg 35deg,
-        #000 35deg 42deg,
-        #fff 42deg 49deg,
-        #000 49deg 56deg,
-        #fff 56deg 63deg,
-        #000 63deg 70deg,
-        #fff 70deg 77deg,
-        #000 77deg 84deg,
-        #fff 84deg 91deg,
-        #000 91deg 98deg,
-        #fff 98deg 105deg,
-        #000 105deg 112deg,
-        #fff 112deg 119deg,
-        #000 119deg 126deg,
-        #fff 126deg 133deg,
-        #000 133deg 140deg,
-        #fff 140deg 147deg,
-        #000 147deg 154deg,
-        #fff 154deg 161deg,
-        #000 161deg 168deg,
-        #fff 168deg 175deg,
-        #000 175deg 182deg,
-        #fff 182deg 189deg,
-        #000 189deg 196deg,
-        #fff 196deg 203deg,
-        #000 203deg 210deg,
-        #fff 210deg 217deg,
-        #000 217deg 224deg,
-        #fff 224deg 231deg,
-        #000 231deg 238deg,
-        #fff 238deg 245deg,
-        #000 245deg 252deg,
-        #fff 252deg 259deg,
-        #000 259deg 266deg,
-        #fff 266deg 273deg,
-        #000 273deg 280deg,
-        #fff 280deg 287deg,
-        #000 287deg 294deg,
-        #fff 294deg 301deg,
-        #000 301deg 308deg,
-        #fff 308deg 315deg,
-        #000 315deg 322deg,
-        #fff 322deg 329deg,
-        #000 329deg 336deg,
-        #fff 336deg 343deg,
-        #000 343deg 360deg
-      );
-    filter: contrast(1.25);
+      repeating-radial-gradient(circle,
+        #fff 0px,
+        #fff 7px,
+        #000 7px,
+        #000 22px);
     transform-origin: 50% 50%;
-    animation: slowSpin 52000ms linear infinite, slowBreath 9200ms ease-in-out infinite;
-
-    /* The “singular line -> full screen” reveal happens via mask size */
-    --p: 0; /* set by keyframes */
-    -webkit-mask-image: radial-gradient(circle at 50% 50%,
-      rgba(0,0,0,1) 0%,
-      rgba(0,0,0,1) calc(var(--p) * 72%),
-      rgba(0,0,0,0) calc(var(--p) * 72% + 0.8%));
-    mask-image: radial-gradient(circle at 50% 50%,
-      rgba(0,0,0,1) 0%,
-      rgba(0,0,0,1) calc(var(--p) * 72%),
-      rgba(0,0,0,0) calc(var(--p) * 72% + 0.8%));
+    animation:
+      slowSpin 42000ms linear infinite,
+      slowBreath 8200ms ease-in-out infinite;
+    filter: contrast(1.22);
+    mask-image: radial-gradient(circle,#000 0%,#000 72%,transparent 90%);
+    -webkit-mask-image: radial-gradient(circle,#000 0%,#000 72%,transparent 90%);
   }
 
-  /* Dark vignette so it feels like falling inward */
   .portal::after{
     content:"";
     position:absolute;
     inset:0;
     background:radial-gradient(circle,
       rgba(0,0,0,0) 0%,
-      rgba(0,0,0,.32) 55%,
+      rgba(0,0,0,.28) 58%,
       #000 100%);
   }
 
-  /* When on, we animate --p from almost nothing (a thin line) to full */
-  .portal.on{
-    opacity:1;
-    animation: portalFadeIn 250ms ease-out forwards, portalDrift 8200ms ease-in-out forwards;
-  }
-
-  @keyframes portalFadeIn{
-    from{ opacity:0; }
-    to  { opacity:1; }
-  }
-
-  /* This animates the mask radius smoothly outward (singular line → fill) */
-  @keyframes portalDrift{
-    0%   { --p: 0.02; transform: scale(1.00); filter: blur(0px); }
-    18%  { --p: 0.12; transform: scale(1.02); filter: blur(0.15px); }
-    45%  { --p: 0.42; transform: scale(1.10); filter: blur(0.55px); }
-    72%  { --p: 0.78; transform: scale(1.28); filter: blur(0.95px); }
-    100% { --p: 1.15; transform: scale(1.50); filter: blur(1.25px); }
-  }
-
   @keyframes slowSpin{
-    from{ transform: rotate(0deg) scale(1.00); }
-    to  { transform: rotate(360deg) scale(1.00); }
+    from{ transform: rotate(0deg) scale(0.95); }
+    to  { transform: rotate(360deg) scale(1.06); }
   }
 
   @keyframes slowBreath{
-    0%   { filter: contrast(1.14) brightness(1.00); }
-    50%  { filter: contrast(1.32) brightness(1.05); }
-    100% { filter: contrast(1.14) brightness(1.00); }
+    0%   { filter: contrast(1.12) brightness(1.00); }
+    50%  { filter: contrast(1.28) brightness(1.04); }
+    100% { filter: contrast(1.12) brightness(1.00); }
   }
 
-  /* ===== Coward “page” ===== */
+  @keyframes fall{
+    0%   { transform: scale(1.0); filter: blur(0px); }
+    30%  { transform: scale(1.05); filter: blur(0.20px); }
+    65%  { transform: scale(1.18); filter: blur(0.55px); }
+    100% { transform: scale(2.00); filter: blur(1.25px); }
+  }
+
   .cowardPage{
     position:absolute;
     inset:0;
@@ -451,17 +383,21 @@
 
   const NEED = 7000;
 
+  // Hysteresis thresholds
   const STILL_THRESH = 6.0;
   const MOVE_THRESH  = 12.0;
   const FINISH_QUIET  = 6.0;
 
   const PORTAL_DELAY = 240;
 
-  // Spiral “fills” over ~8.2s (portalDrift keyframes), so we redirect near the end
-  const REDIRECT_AFTER = 7700;
+  // We’ll fade the audio OUT before redirecting.
+  const AUDIO_FADE_MS = 1400;
 
-  // Audio fade
-  const AUDIO_FADE_MS = 1600;
+  // Total time from portal start to redirect:
+  // portal animation is 5600ms; we redirect near the end
+  // but we ensure at least AUDIO_FADE_MS is available for fade.
+  const PORTAL_TOTAL_MS = 5600;
+  const REDIRECT_AFTER = Math.max(900, PORTAL_TOTAL_MS - 250); // ~end of fall
 
   // ===== Ambient sound (procedural) =====
   let audioCtx = null, master = null;
@@ -522,6 +458,7 @@
     master.gain.setValueAtTime(master.gain.value, t);
     master.gain.linearRampToValueAtTime(0.0001, t + dur);
 
+    // optionally darken shimmer as it fades
     try{
       shimmerOsc.frequency.cancelScheduledValues(t);
       shimmerOsc.frequency.setTargetAtTime(140, t, 1.0);
@@ -567,6 +504,7 @@
     hint.textContent = "Falling inward.";
     sub.textContent = "Recognized.";
 
+    // little swell first (optional), then fade before redirect
     if (audioCtx && master){
       const t = audioCtx.currentTime;
       master.gain.cancelScheduledValues(t);
@@ -577,10 +515,13 @@
     setTimeout(() => {
       portal.classList.add("on");
 
+      // Start fading out audio so redirect doesn't feel like a chop.
+      // Do it near the end of the portal, but always leaving AUDIO_FADE_MS of fade time.
       const fadeAt = Math.max(0, REDIRECT_AFTER - AUDIO_FADE_MS);
       setTimeout(() => fadeOutAmbient(AUDIO_FADE_MS), fadeAt);
 
       setTimeout(() => {
+        // (Audio will still cut at navigation, but it will already be near silent.)
         window.location.href = SECRET_URL;
       }, REDIRECT_AFTER);
 
@@ -594,7 +535,7 @@
     document.body.classList.remove("mirroring");
 
     try{
-      startAmbient();
+      startAmbient(); // must be after click
 
       stream = await navigator.mediaDevices.getUserMedia({ video:true, audio:false });
       vid.srcObject = stream;
@@ -732,3 +673,4 @@
 
 </body>
 </html>
+
