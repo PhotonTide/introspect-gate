@@ -1,0 +1,419 @@
+{\rtf1\ansi\ansicpg1252\cocoartf2761
+\cocoatextscaling0\cocoaplatform0{\fonttbl\f0\fswiss\fcharset0 Helvetica;}
+{\colortbl;\red255\green255\blue255;}
+{\*\expandedcolortbl;;}
+\margl1440\margr1440\vieww11520\viewh8400\viewkind0
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural\partightenfactor0
+
+\f0\fs24 \cf0 <!doctype html>\
+<html lang="en">\
+<head>\
+  <meta charset="utf-8" />\
+  <meta name="viewport" content="width=device-width,initial-scale=1" />\
+  <title>INTROSPECT</title>\
+  <style>\
+    :root\{\
+      --bg:#07080a; --fg:#e9edf2;\
+      --muted:rgba(233,237,242,.72);\
+      --faint:rgba(233,237,242,.18);\
+      --danger:rgba(255,140,140,.95);\
+      --ok:rgba(120,255,180,.65);\
+    \}\
+    html,body\{height:100%;margin:0;background:var(--bg);color:var(--fg);overflow:hidden;\
+      font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;\}\
+    .wrap\{height:100%;display:grid;place-items:center\}\
+    .stage\{\
+      position:relative;width:min(92vw,900px);aspect-ratio:16/9;border-radius:18px;overflow:hidden;\
+      background: radial-gradient(1200px 600px at 50% 40%, rgba(255,255,255,0.06), transparent 60%),\
+                  linear-gradient(180deg, rgba(255,255,255,0.03), transparent 35%);\
+      box-shadow:0 20px 80px rgba(0,0,0,.65), inset 0 0 0 1px rgba(255,255,255,.08);\
+    \}\
+    video,canvas\{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transform:scaleX(-1);\}\
+    /* Overlays */\
+    .scanlines\{position:absolute;inset:0;pointer-events:none;\
+      background:repeating-linear-gradient(to bottom, rgba(0,0,0,0), rgba(0,0,0,0) 2px, rgba(0,0,0,.18) 3px);\
+      mix-blend-mode:multiply;opacity:.55;\}\
+    .vignette\{position:absolute;inset:0;pointer-events:none;\
+      background:radial-gradient(circle at 50% 45%, rgba(0,0,0,.05) 0%, rgba(0,0,0,.25) 55%, rgba(0,0,0,.70) 100%);\
+      opacity:.9;\}\
+    .grain\{position:absolute;inset:-20%;pointer-events:none;\
+      background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)' opacity='.35'/%3E%3C/svg%3E");\
+      opacity:.22;mix-blend-mode:overlay;animation:drift 6s linear infinite;transform:rotate(2deg);\}\
+    @keyframes drift\{0%\{transform:translate3d(-2%,-1%,0) rotate(2deg)\}\
+      50%\{transform:translate3d(1%,2%,0) rotate(2deg)\}\
+      100%\{transform:translate3d(-2%,-1%,0) rotate(2deg)\}\}\
+    /* HUD */\
+    .hud\{position:absolute;inset:0;display:grid;grid-template-rows:auto 1fr auto;padding:18px 18px 14px;pointer-events:none;\}\
+    .topline\{display:flex;justify-content:space-between;align-items:baseline;gap:12px;\
+      letter-spacing:.08em;text-transform:uppercase;font-size:12px;color:var(--faint);\}\
+    .centerPrompt\{\
+      align-self:center;justify-self:center;text-align:center;max-width:660px;padding:20px 18px;border-radius:16px;\
+      background:rgba(0,0,0,.25);box-shadow:inset 0 0 0 1px rgba(255,255,255,.06);backdrop-filter:blur(8px);\
+      pointer-events:auto;\
+    \}\
+    .title\{font-size:clamp(18px,3vw,26px);letter-spacing:.12em;text-transform:uppercase;margin:0 0 10px;color:rgba(233,237,242,.92);\}\
+    .sub\{margin:0 0 16px;color:var(--muted);line-height:1.45;font-size:14px;\}\
+    .row\{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;\}\
+    button\{\
+      pointer-events:auto;border:0;border-radius:999px;padding:10px 14px;background:rgba(233,237,242,.10);\
+      color:rgba(233,237,242,.92);letter-spacing:.08em;text-transform:uppercase;font-size:12px;cursor:pointer;\
+      box-shadow:inset 0 0 0 1px rgba(255,255,255,.10);\
+      transition:transform .08s ease,background .18s ease,opacity .18s ease;\
+    \}\
+    button:hover\{background:rgba(233,237,242,.14)\}\
+    button:active\{transform:translateY(1px)\}\
+    button[disabled]\{opacity:.35;cursor:not-allowed\}\
+    .hintline\{margin-top:12px;color:rgba(233,237,242,.60);font-size:12px;letter-spacing:.02em;\}\
+    .bottom\{display:flex;justify-content:space-between;align-items:center;gap:10px;color:var(--faint);\
+      font-size:11px;letter-spacing:.04em;text-transform:uppercase;\}\
+    .statusDot\{display:inline-block;width:8px;height:8px;border-radius:50%;\
+      background:rgba(255,255,255,.16);box-shadow:0 0 0 2px rgba(255,255,255,.06);margin-right:8px;vertical-align:-1px;\}\
+    .statusDot.on\{background:var(--ok);box-shadow:0 0 0 2px rgba(120,255,180,.14),0 0 18px rgba(120,255,180,.22);\}\
+    .error\{color:var(--danger);font-size:12px;margin-top:10px;display:none\}\
+    .reveal\{\
+      margin-top:14px;display:none;padding:12px 12px;border-radius:14px;background:rgba(0,0,0,.25);\
+      box-shadow:inset 0 0 0 1px rgba(255,255,255,.08);text-align:center;\
+    \}\
+    .reveal p\{margin:0 0 10px;color:rgba(233,237,242,.78);font-size:13px;line-height:1.5;\}\
+    .reveal a\{\
+      display:inline-block;padding:10px 14px;border-radius:999px;background:rgba(233,237,242,.12);\
+      color:rgba(233,237,242,.92);text-decoration:none;text-transform:uppercase;font-size:12px;letter-spacing:.08em;\
+      box-shadow:inset 0 0 0 1px rgba(255,255,255,.12);\
+    \}\
+    @media (max-width:520px)\{.stage\{aspect-ratio:9/16\}.bottom\{font-size:10px\}\}\
+  </style>\
+</head>\
+<body>\
+  <div class="wrap">\
+    <div class="stage" aria-label="Reflection Gate">\
+      <video id="vid" playsinline muted autoplay></video>\
+      <canvas id="fx" aria-hidden="true"></canvas>\
+\
+      <div class="scanlines" aria-hidden="true"></div>\
+      <div class="grain" aria-hidden="true"></div>\
+      <div class="vignette" aria-hidden="true"></div>\
+\
+      <div class="hud">\
+        <div class="topline">\
+          <div>INTROSPECT</div>\
+          <div id="clock">\'97</div>\
+        </div>\
+\
+        <div class="centerPrompt" id="panel">\
+          <h1 class="title" id="title">Look inward.</h1>\
+          <p class="sub" id="sub">\
+            The gate only opens in reflection.\
+          </p>\
+\
+          <div class="row">\
+            <button id="btnCamera">Enable Mirror</button>\
+            <button id="btnTry" disabled>Try Again</button>\
+            <button id="btnStop" disabled>Stop</button>\
+          </div>\
+\
+          <div class="hintline" id="hint">\
+            Hold still. If you refuse the mirror, the loop remains closed.\
+          </div>\
+\
+          <div class="error" id="err"></div>\
+\
+          <div class="reveal" id="reveal">\
+            <p id="revealText">You are here. You are the witness.</p>\
+            <!-- Replace with your secret link -->\
+            <a id="secretLink" href="REPLACE_WITH_SECRET_URL" rel="noopener noreferrer">Unlock</a>\
+          </div>\
+        </div>\
+\
+        <div class="bottom">\
+          <div>\
+            <span class="statusDot" id="dot"></span>\
+            <span id="status">Mirror idle</span>\
+          </div>\
+          <div id="tech">\'97</div>\
+        </div>\
+      </div>\
+    </div>\
+  </div>\
+\
+  <script>\
+    /**\
+     * Reflection Gate (camera REQUIRED).\
+     * Flow:\
+     *  - User clicks Enable Mirror -> browser permission prompt.\
+     *  - If they deny/close: shows "Try Again" and a denial message.\
+     *  - If camera active: presence builds (FaceDetector if available, else stillness).\
+     *  - When threshold hit: reveal Unlock link.\
+     */\
+\
+    const vid = document.getElementById('vid');\
+    const fx = document.getElementById('fx');\
+    const ctx = fx.getContext('2d', \{ willReadFrequently: true \});\
+\
+    const btnCamera = document.getElementById('btnCamera');\
+    const btnTry = document.getElementById('btnTry');\
+    const btnStop = document.getElementById('btnStop');\
+\
+    const statusEl = document.getElementById('status');\
+    const dot = document.getElementById('dot');\
+    const techEl = document.getElementById('tech');\
+    const errEl = document.getElementById('err');\
+\
+    const reveal = document.getElementById('reveal');\
+    const revealText = document.getElementById('revealText');\
+\
+    const clockEl = document.getElementById('clock');\
+    const hintEl = document.getElementById('hint');\
+\
+    let stream = null;\
+    let raf = null;\
+\
+    let detector = null;\
+    let hasFaceDetector = false;\
+\
+    let revealArmed = false;\
+    let presenceScore = 0;\
+    let lastFrame = null;\
+\
+    // Clock\
+    setInterval(() => \{\
+      const d = new Date();\
+      const hh = String(d.getHours()).padStart(2,'0');\
+      const mm = String(d.getMinutes()).padStart(2,'0');\
+      const ss = String(d.getSeconds()).padStart(2,'0');\
+      clockEl.textContent = `$\{hh\}:$\{mm\}:$\{ss\}`;\
+    \}, 250);\
+\
+    // FaceDetector feature detect (Chromium)\
+    try \{\
+      if ('FaceDetector' in window) \{\
+        detector = new FaceDetector(\{ fastMode: true, maxDetectedFaces: 1 \});\
+        hasFaceDetector = true;\
+      \}\
+    \} catch (_) \{\
+      hasFaceDetector = false;\
+      detector = null;\
+    \}\
+    techEl.textContent = hasFaceDetector ? 'FaceDetector: ON' : 'FaceDetector: OFF';\
+\
+    function setStatus(text, on=false)\{\
+      statusEl.textContent = text;\
+      dot.classList.toggle('on', !!on);\
+    \}\
+    function showError(msg)\{\
+      errEl.style.display = 'block';\
+      errEl.textContent = msg;\
+    \}\
+    function clearError()\{\
+      errEl.style.display = 'none';\
+      errEl.textContent = '';\
+    \}\
+\
+    function sizeCanvas()\{\
+      const rect = fx.getBoundingClientRect();\
+      const dpr = Math.max(1, Math.min(window.devicePixelRatio || 1, 2));\
+      fx.width = Math.floor(rect.width * dpr);\
+      fx.height = Math.floor(rect.height * dpr);\
+    \}\
+    window.addEventListener('resize', sizeCanvas);\
+\
+    function clamp(v,a,b)\{ return Math.max(a, Math.min(b,v)); \}\
+\
+    async function startCamera()\{\
+      clearError();\
+      reveal.style.display = 'none';\
+      revealArmed = false;\
+      presenceScore = 0;\
+      lastFrame = null;\
+\
+      btnTry.disabled = true;\
+      hintEl.textContent = 'Permission requested. Choose reflection.';\
+\
+      try\{\
+        stream = await navigator.mediaDevices.getUserMedia(\{\
+          video: \{ facingMode: 'user' \},\
+          audio: false\
+        \});\
+\
+        vid.srcObject = stream;\
+        await vid.play();\
+\
+        sizeCanvas();\
+        btnStop.disabled = false;\
+        setStatus('Mirror active', true);\
+\
+        // Arm reveal only after camera is actually running\
+        revealArmed = true;\
+        hintEl.textContent = 'Hold still. The gate opens when you are present.';\
+        loop();\
+      \} catch (e)\{\
+        // Denied or not available\
+        stream = null;\
+        vid.srcObject = null;\
+\
+        btnStop.disabled = true;\
+        btnTry.disabled = false;\
+\
+        setStatus('Mirror denied', false);\
+        showError('The gate did not open. Enable the mirror to continue.');\
+        hintEl.textContent = 'Try again. The answer is not outside.';\
+      \}\
+    \}\
+\
+    function stopCamera()\{\
+      if (raf) cancelAnimationFrame(raf);\
+      raf = null;\
+\
+      if (stream)\{\
+        for (const t of stream.getTracks()) t.stop();\
+      \}\
+      stream = null;\
+\
+      vid.srcObject = null;\
+      ctx.clearRect(0,0,fx.width,fx.height);\
+\
+      revealArmed = false;\
+      presenceScore = 0;\
+      lastFrame = null;\
+\
+      btnStop.disabled = true;\
+      btnTry.disabled = false;\
+\
+      setStatus('Mirror stopped', false);\
+      showError('The loop resets. Enable the mirror to proceed.');\
+      hintEl.textContent = 'Try again. Look inward.';\
+    \}\
+\
+    function revealUnlock(reason='')\{\
+      if (!revealArmed) return;\
+      revealArmed = false;\
+\
+      if (reason === 'face')\{\
+        revealText.textContent = 'You are here. You are the witness.';\
+      \} else \{\
+        revealText.textContent = 'Stillness reveals the center.';\
+      \}\
+\
+      reveal.style.display = 'block';\
+      setStatus('Gate open', true);\
+      hintEl.textContent = 'The loop recognizes you.';\
+    \}\
+\
+    function drawEffects()\{\
+      const w = fx.width, h = fx.height;\
+      ctx.save();\
+      ctx.clearRect(0,0,w,h);\
+\
+      ctx.drawImage(vid, 0, 0, w, h);\
+\
+      // Tone: cool + contrast + noise\
+      const img = ctx.getImageData(0,0,w,h);\
+      const d = img.data;\
+\
+      const glitch = Math.random() < 0.08;\
+      const glitchY = Math.floor(Math.random() * h);\
+      const glitchH = Math.floor(4 + Math.random() * 14);\
+      const glitchShift = Math.floor((Math.random() - 0.5) * 40);\
+\
+      for (let i=0;i<d.length;i+=4)\{\
+        const r=d[i], g=d[i+1], b=d[i+2];\
+        let y = 0.2126*r + 0.7152*g + 0.0722*b;\
+        y = (y - 128) * 1.12 + 128;\
+\
+        let rr = y*0.98, gg = y*1.00, bb = y*1.04;\
+        const n = (Math.random()-0.5)*6;\
+        rr+=n; gg+=n; bb+=n;\
+\
+        d[i]   = clamp(rr,0,255);\
+        d[i+1] = clamp(gg,0,255);\
+        d[i+2] = clamp(bb,0,255);\
+      \}\
+\
+      ctx.putImageData(img,0,0);\
+\
+      if (glitch)\{\
+        const band = ctx.getImageData(0, glitchY, w, glitchH);\
+        ctx.putImageData(band, glitchShift, glitchY);\
+      \}\
+\
+      // Dark wash\
+      ctx.fillStyle = 'rgba(0,0,0,0.10)';\
+      ctx.fillRect(0,0,w,h);\
+\
+      // Subtle emergent text as score rises\
+      if (revealArmed)\{\
+        ctx.save();\
+        ctx.globalAlpha = 0.10 + 0.12*(presenceScore/100);\
+        ctx.fillStyle = 'rgba(233,237,242,1)';\
+        ctx.font = `$\{Math.floor(w*0.028)\}px ui-sans-serif, system-ui`;\
+        ctx.textAlign = 'center';\
+        ctx.textBaseline = 'middle';\
+        ctx.fillText('YOU ARE WATCHING YOURSELF', w*0.5, h*0.58);\
+\
+        ctx.globalAlpha = 0.10 + 0.14*(presenceScore/100);\
+        ctx.font = `$\{Math.floor(w*0.022)\}px ui-sans-serif, system-ui`;\
+        ctx.fillText('\'85BE STILL', w*0.5, h*0.64);\
+        ctx.restore();\
+      \}\
+\
+      ctx.restore();\
+\
+      // Stillness detector (fallback)\
+      try\{\
+        const sample = ctx.getImageData(0,0,w,h);\
+        if (lastFrame)\{\
+          let diff = 0;\
+          const step = 64;\
+          for (let i=0;i<sample.data.length;i+=4*step)\{\
+            diff += Math.abs(sample.data[i] - lastFrame.data[i]);\
+          \}\
+          const stillness = clamp(1 - (diff / 90000), 0, 1);\
+          presenceScore = clamp(\
+            presenceScore + (stillness*1.8) - (1-stillness)*2.2,\
+            0, 120\
+          );\
+        \}\
+        lastFrame = sample;\
+      \} catch (_) \{\}\
+    \}\
+\
+    async function detectFacePresence()\{\
+      if (!hasFaceDetector || !detector) return false;\
+      try\{\
+        const faces = await detector.detect(fx);\
+        return Array.isArray(faces) && faces.length > 0;\
+      \} catch (_) \{\
+        return false;\
+      \}\
+    \}\
+\
+    async function loop()\{\
+      if (!stream) return;\
+\
+      drawEffects();\
+\
+      if (revealArmed)\{\
+        if (hasFaceDetector)\{\
+          const face = await detectFacePresence();\
+          presenceScore = clamp(presenceScore + (face ? 6 : -3), 0, 120);\
+          if (presenceScore >= 85) revealUnlock('face');\
+        \} else \{\
+          if (presenceScore >= 95) revealUnlock('motion');\
+        \}\
+      \}\
+\
+      raf = requestAnimationFrame(loop);\
+    \}\
+\
+    // Buttons\
+    btnCamera.addEventListener('click', startCamera);\
+    btnTry.addEventListener('click', startCamera);\
+    btnStop.addEventListener('click', stopCamera);\
+\
+    // Auto-stop on hide\
+    document.addEventListener('visibilitychange', () => \{\
+      if (document.hidden) stopCamera();\
+    \});\
+  </script>\
+</body>\
+</html>\
+}
