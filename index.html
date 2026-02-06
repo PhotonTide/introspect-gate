@@ -144,7 +144,7 @@
     flex-wrap:wrap;
   }
 
-  button{
+  button, .btn{
     border:0;
     border-radius:999px;
     padding:10px 14px;
@@ -156,8 +156,8 @@
     cursor:pointer;
     box-shadow: inset 0 0 0 1px rgba(255,255,255,.10);
   }
-  button:hover{ background:rgba(255,255,255,.18); }
-  button[disabled]{ opacity:.35; cursor:not-allowed; }
+  button:hover, .btn:hover{ background:rgba(255,255,255,.18); }
+  button[disabled], .btn[disabled]{ opacity:.35; cursor:not-allowed; }
 
   .hint{
     margin-top:12px;
@@ -250,7 +250,7 @@
     100% { transform: scale(2.00); filter: blur(1.25px); }
   }
 
-  /* ===== Coward “page” (Stop 1-2) — now becomes the confession chat ===== */
+  /* ===== Coward “page” (Stop 1-2) — confession chat ===== */
   .cowardPage{
     position:absolute;
     inset:0;
@@ -300,7 +300,7 @@
   }
 
   .cowardSub{
-    margin:0 0 16px;
+    margin:0 0 14px;
     opacity:.70;
     letter-spacing:.10em;
     text-transform:uppercase;
@@ -343,16 +343,6 @@
     opacity:.92;
   }
 
-  .inputRow{
-    display:flex;
-    gap:10px;
-    align-items:flex-end;
-  }
-
-  .promptCol{
-    flex:1;
-  }
-
   .label{
     font-size:11px;
     letter-spacing:.16em;
@@ -361,19 +351,17 @@
     margin:0 0 6px;
   }
 
-  .smallLabel{
-    font-size:11px;
-    letter-spacing:.14em;
-    text-transform:uppercase;
-    opacity:.55;
-    margin:0 0 10px;
+  .inputRow{
+    display:flex;
+    gap:10px;
+    align-items:flex-end;
   }
 
   textarea{
-    width:100%;
+    flex:1;
     resize:none;
     min-height:52px;
-    max-height:120px;
+    max-height:140px;
     padding:12px 12px;
     border-radius:14px;
     border:0;
@@ -385,10 +373,21 @@
     box-shadow: inset 0 0 0 1px rgba(255,255,255,.10);
   }
 
-  .cowardBtns{
-    display:flex;
-    gap:10px;
+  .enterBtn{
+    padding:12px 14px;
+    border-radius:14px;
+    background:rgba(255,255,255,.10);
+    min-width:88px;
+    height:52px;
+    display:inline-flex;
     align-items:center;
+    justify-content:center;
+  }
+
+  .choiceRow{
+    display:none;
+    gap:10px;
+    margin-top:10px;
     justify-content:flex-end;
   }
 
@@ -396,24 +395,11 @@
     background:rgba(255,255,255,.08);
   }
 
-  .choiceRow{
+  .cowardBtns{
     display:flex;
     gap:10px;
-    margin-top:10px;
+    margin-top:12px;
     justify-content:flex-end;
-  }
-
-  .choiceRow button{
-    padding:10px 12px;
-  }
-
-  .note{
-    margin-top:10px;
-    font-size:10px;
-    letter-spacing:.14em;
-    text-transform:uppercase;
-    opacity:.38;
-    user-select:none;
   }
 
   /* ===== LOCKED “fail page” after 3 Stops ===== */
@@ -471,6 +457,7 @@
     letter-spacing:.12em;
     text-transform:uppercase;
     font-size:12px;
+    line-height:1.35;
   }
 
   .lockedInner a{
@@ -491,8 +478,8 @@
     .stage{ aspect-ratio:9/16; }
     body.mirroring .center{ transform:translateY(-80vh); }
     .instruction{ font-size:10px; letter-spacing:.14em; padding:9px 10px; }
-    .cowardInner{ text-align:left; }
     .chat{ height:min(46vh,360px); }
+    .enterBtn{ min-width:78px; }
   }
 </style>
 </head>
@@ -504,7 +491,7 @@
 
     <div class="portal" id="portal"></div>
 
-    <!-- Coward page -> confession chat -->
+    <!-- Coward page -> confession chat (STOP #1 and #2 only) -->
     <div class="cowardPage" id="cowardPage">
       <div class="cowardInner">
         <div class="cowardTitle">What are you avoiding</div>
@@ -512,21 +499,18 @@
 
         <div class="chat" id="chat"></div>
 
+        <div class="label">Answer.</div>
         <div class="inputRow">
-          <div class="promptCol">
-            <div class="label">Say it.</div>
-            <textarea id="confession" placeholder="type here..."></textarea>
-            <div class="note">This is a scripted reflection gate (no server, no real AI).</div>
-          </div>
+          <textarea id="confession" placeholder="type here... (Enter to send, Shift+Enter for a new line)"></textarea>
+          <button class="enterBtn" id="enterBtn">Enter</button>
         </div>
 
-        <div class="choiceRow" id="choiceRow" style="display:none;">
+        <div class="choiceRow" id="choiceRow">
           <button id="readyYes">Yes</button>
           <button class="ghostBtn" id="readyNo">No</button>
         </div>
 
-        <div class="cowardBtns" style="margin-top:10px;">
-          <button class="ghostBtn" id="sendBtn">Send</button>
+        <div class="cowardBtns">
           <button class="ghostBtn" id="backBtn">Go back</button>
         </div>
       </div>
@@ -536,7 +520,7 @@
     <div class="lockedPage" id="lockedPage">
       <div class="lockedInner">
         <h2>LOCKED</h2>
-        <div class="small">You chose the exit three times. The gate will not open.</div>
+        <div class="small">You chose the exit three times.<br>The gate will not open.</div>
         <a href="#return" id="returnLink">Return and try again</a>
       </div>
     </div>
@@ -586,7 +570,7 @@
   // Coward chat elements
   const chatEl = document.getElementById("chat");
   const confessionEl = document.getElementById("confession");
-  const sendBtn = document.getElementById("sendBtn");
+  const enterBtn = document.getElementById("enterBtn");
   const backBtn = document.getElementById("backBtn");
   const choiceRow = document.getElementById("choiceRow");
   const readyYes = document.getElementById("readyYes");
@@ -595,10 +579,22 @@
   // Locked elements
   const returnLink = document.getElementById("returnLink");
 
+  // ===== Versioned storage reset (prevents “it locked on first stop” due to old localStorage) =====
+  const STORAGE_VERSION = "spiral_gate_v4";
+  const VERSION_KEY = "spiral_storage_version";
+  if (localStorage.getItem(VERSION_KEY) !== STORAGE_VERSION){
+    // Only reset the stop/lock + chat UI state. (Keeps your other site storage intact.)
+    localStorage.setItem(VERSION_KEY, STORAGE_VERSION);
+    localStorage.setItem("spiral_stop_count", "0");
+    localStorage.removeItem("spiral_locked");
+    localStorage.removeItem("spiral_coward_chat_state");
+  }
+
   // ===== Fail whisper (stillness fails, camera denied, etc.) =====
   const failEl = document.getElementById("fail");
   const FAIL_KEY = "spiral_fail_count";
   let failCount = Number(localStorage.getItem(FAIL_KEY) || 0);
+  if (!Number.isFinite(failCount)) failCount = 0;
 
   const failMessages = [
     "You weren’t ready.",
@@ -634,6 +630,7 @@
   const STOP_KEY = "spiral_stop_count";
   const LOCK_KEY = "spiral_locked";
   let stopCount = Number(localStorage.getItem(STOP_KEY) || 0);
+  if (!Number.isFinite(stopCount)) stopCount = 0;
   let locked = (localStorage.getItem(LOCK_KEY) === "1");
 
   function applyLockedUI(){
@@ -646,7 +643,6 @@
       sub.textContent = "The gate will not open.";
     } else {
       document.body.classList.remove("locked");
-      // startBtn enabled/disabled managed by camera state
     }
   }
 
@@ -810,10 +806,9 @@
     if (triggered || locked) return;
     triggered = true;
 
-    // success forgives
     clearFail();
 
-    // if they succeed, they "proved" they won't quit -> reset stop counter
+    // success resets stop counter
     stopCount = 0;
     localStorage.setItem(STOP_KEY, "0");
 
@@ -882,7 +877,6 @@
     }
   }
 
-  // force = true prevents messing with stop counter when we lock or route
   function stopCam(force=false){
     if (raf) cancelAnimationFrame(raf);
     raf = null;
@@ -904,29 +898,16 @@
   }
 
   /* ============================
-     Coward Chat (Option A)
-     Scripted “pseudo-AI” conversation
+     Coward Chat (scripted pseudo-AI)
   ============================ */
   const CHAT_KEY = "spiral_coward_chat_state";
   let chatState = JSON.parse(localStorage.getItem(CHAT_KEY) || "null") || {
-    turns: 0,
-    opened: 0
+    turns: 0
   };
 
-  function saveChatState(){
-    localStorage.setItem(CHAT_KEY, JSON.stringify(chatState));
-  }
+  function saveChatState(){ localStorage.setItem(CHAT_KEY, JSON.stringify(chatState)); }
 
-  function clearChat(){
-    chatEl.innerHTML = "";
-    chatState.turns = 0;
-    saveChatState();
-    choiceRow.style.display = "none";
-  }
-
-  function scrollChat(){
-    chatEl.scrollTop = chatEl.scrollHeight;
-  }
+  function scrollChat(){ chatEl.scrollTop = chatEl.scrollHeight; }
 
   function addBubble(text, who){
     const div = document.createElement("div");
@@ -936,12 +917,17 @@
     scrollChat();
   }
 
+  function seedChatIfEmpty(){
+    if (chatEl.children.length) return;
+    addBubble("You looked away.", "system");
+    addBubble("What are you avoiding?", "system");
+  }
+
   function analyze(text){
     const t = (text || "").toLowerCase();
     const has = (w) => t.includes(w);
 
-    // tiny keyword-based flavor (still “solvable by anyone”, but feels personal)
-    if (has("work") || has("job") || has("career")) return "You keep calling it “work” so you don’t have to call it fear.";
+    if (has("work") || has("job") || has("career")) return "You call it “work” so you don’t have to call it fear.";
     if (has("love") || has("relationship") || has("her") || has("him")) return "You keep saying their name. The mirror keeps saying yours.";
     if (has("money") || has("rent") || has("broke")) return "Numbers are a mask. Under the mask is a body holding its breath.";
     if (has("death") || has("dying") || has("mortality")) return "You looked away from the mirror. Not from the end.";
@@ -955,7 +941,7 @@
     const turns = chatState.turns;
 
     if (turns === 0){
-      return "Good. A direct answer is rare. Read it back to yourself, slowly.";
+      return "Good. A direct answer is rare.\nRead it back to yourself, slowly.";
     }
     if (turns === 1){
       return analyze(userText) + "\n\nIf the mirror is hard to look at, what are you protecting?";
@@ -963,7 +949,6 @@
     if (turns === 2){
       return "You can keep moving forever.\nOr you can stay.\n\nAre you ready to go back?";
     }
-    // fallback
     return "Are you ready to go back?";
   }
 
@@ -974,15 +959,7 @@
 
   function enterCoward(){
     document.body.classList.add("coward");
-
-    // first time opening this session: seed the chat
-    if (!chatEl.children.length){
-      addBubble("You looked away.", "system");
-      addBubble("What are you avoiding?", "system");
-    }
-
-    chatState.opened += 1;
-    saveChatState();
+    seedChatIfEmpty();
     confessionEl.focus();
   }
 
@@ -997,30 +974,28 @@
     const text = confessionEl.value.trim();
     if (!text) return;
 
-    // user bubble
     addBubble(text, "user");
     confessionEl.value = "";
 
-    // scripted “pseudo AI” reply
     const reply = systemReply(text);
+
     setTimeout(() => {
       addBubble(reply, "system");
-
       chatState.turns += 1;
       saveChatState();
-
-      // after 3 user messages (turns 0,1,2) ask ready and show buttons
       if (chatState.turns >= 3){
         presentReadyChoice();
       }
-    }, 450);
+    }, 420);
   }
 
   /* ============================
-     Routes / Stop behavior
+     Stop behavior and routing
   ============================ */
   function goCoward(){
-    // pressing Stop increments stop counter; on the 3rd stop, you get LOCKED
+    // Stop counter increments here:
+    // Stop #1 and #2 => coward chat
+    // Stop #3 => locked page
     const nowLocked = registerStop();
     stopCam(true);
 
@@ -1110,7 +1085,6 @@
       document.body.classList.add("locked");
       document.body.classList.remove("coward");
     } else if (location.hash === "#return"){
-      // the only way out of the locked page is clicking the link
       unlockNow();
     } else {
       document.body.classList.remove("coward");
@@ -1119,23 +1093,22 @@
   }
   window.addEventListener("hashchange", syncRoute);
 
-  // Buttons
+  // Controls
   startBtn.onclick = startCam;
   stopTop.onclick = goCoward;
 
   backBtn.onclick = backFromCoward;
-  sendBtn.onclick = handleSend;
+  enterBtn.onclick = handleSend;
 
+  // Enter to send, Shift+Enter for newline
   confessionEl.addEventListener("keydown", (e) => {
-    if ((e.ctrlKey || e.metaKey) && e.key === "Enter"){
+    if (e.key === "Enter" && !e.shiftKey){
       e.preventDefault();
       handleSend();
     }
   });
 
   readyYes.onclick = () => {
-    // redirect them back to the mirror page (original)
-    // keep stopCount as-is; the lock still happens if they keep quitting.
     addBubble("Then return.", "system");
     choiceRow.style.display = "none";
     setTimeout(() => {
@@ -1152,15 +1125,22 @@
     if (document.hidden) stopCam(true);
   });
 
-  // apply lock on load if it was triggered previously
+  // Load
   if (locked){
     location.hash = "#locked";
   }
-
   showFail();
   applyLockedUI();
   syncRoute();
+
+  // Restore chat state (so it doesn't vanish on refresh)
+  // If they already progressed to the ready question, show choices.
+  seedChatIfEmpty();
+  if (chatState.turns >= 3){
+    choiceRow.style.display = "flex";
+  }
 </script>
 
 </body>
 </html>
+
