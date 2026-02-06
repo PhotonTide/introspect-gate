@@ -296,12 +296,25 @@
   }
 
   .cowardInner .small{
-    margin:0 0 18px;
+    margin:0 0 10px;
     opacity:.62;
     letter-spacing:.12em;
     text-transform:uppercase;
     font-size:12px;
   }
+
+  /* fail whisper on coward page */
+  .cowardFail{
+    margin:0 0 18px;
+    font-size:11px;
+    opacity:0;
+    letter-spacing:.12em;
+    text-transform:uppercase;
+    color:rgba(255,255,255,.55);
+    transition: opacity 1.2s ease;
+    user-select:none;
+  }
+  .cowardFail.show{ opacity:1; }
 
   .cowardInner .backBtn{
     border:0;
@@ -336,6 +349,7 @@
       <div class="cowardInner">
         <h2>COWARD</h2>
         <div class="small">You looked away.</div>
+        <div class="cowardFail" id="cowardFail"></div>
         <button class="backBtn" id="backBtn">Go back</button>
       </div>
     </div>
@@ -384,6 +398,8 @@
 
   // ===== Fail-state memory =====
   const failEl = document.getElementById("fail");
+  const cowardFailEl = document.getElementById("cowardFail");
+
   const FAIL_KEY = "spiral_fail_count";
   let failCount = Number(localStorage.getItem(FAIL_KEY) || 0);
 
@@ -393,15 +409,27 @@
     "The spiral remembers."
   ];
 
-  function showFail(){
-    if (failCount < 3) {
-      failEl.textContent = "";
-      failEl.classList.remove("show");
+  function applyFailText(el, text){
+    if (!el) return;
+    if (!text){
+      el.textContent = "";
+      el.classList.remove("show");
       return;
     }
+    el.textContent = text;
+    el.classList.add("show");
+  }
+
+  function currentFailMessage(){
+    if (failCount < 3) return "";
     const idx = Math.min(failMessages.length - 1, failCount - 3);
-    failEl.textContent = failMessages[idx];
-    failEl.classList.add("show");
+    return failMessages[idx];
+  }
+
+  function showFail(){
+    const msg = currentFailMessage();
+    applyFailText(failEl, msg);
+    applyFailText(cowardFailEl, msg);
   }
 
   function registerFail(){
@@ -413,8 +441,8 @@
   function clearFail(){
     failCount = 0;
     localStorage.removeItem(FAIL_KEY);
-    failEl.textContent = "";
-    failEl.classList.remove("show");
+    applyFailText(failEl, "");
+    applyFailText(cowardFailEl, "");
   }
 
   let stream = null;
@@ -443,8 +471,6 @@
   const AUDIO_FADE_MS = 1400;
 
   // Total time from portal start to redirect:
-  // portal animation is 5600ms; we redirect near the end
-  // but we ensure at least AUDIO_FADE_MS is available for fade.
   const PORTAL_TOTAL_MS = 5600;
   const REDIRECT_AFTER = Math.max(900, PORTAL_TOTAL_MS - 250); // ~end of fall
 
@@ -507,7 +533,6 @@
     master.gain.setValueAtTime(master.gain.value, t);
     master.gain.linearRampToValueAtTime(0.0001, t + dur);
 
-    // optionally darken shimmer as it fades
     try{
       shimmerOsc.frequency.cancelScheduledValues(t);
       shimmerOsc.frequency.setTargetAtTime(140, t, 1.0);
@@ -556,7 +581,6 @@
     hint.textContent = "Falling inward.";
     sub.textContent = "Recognized.";
 
-    // little swell first (optional), then fade before redirect
     if (audioCtx && master){
       const t = audioCtx.currentTime;
       master.gain.cancelScheduledValues(t);
@@ -567,13 +591,10 @@
     setTimeout(() => {
       portal.classList.add("on");
 
-      // Start fading out audio so redirect doesn't feel like a chop.
-      // Do it near the end of the portal, but always leaving AUDIO_FADE_MS of fade time.
       const fadeAt = Math.max(0, REDIRECT_AFTER - AUDIO_FADE_MS);
       setTimeout(() => fadeOutAmbient(AUDIO_FADE_MS), fadeAt);
 
       setTimeout(() => {
-        // (Audio will still cut at navigation, but it will already be near silent.)
         window.location.href = SECRET_URL;
       }, REDIRECT_AFTER);
 
@@ -590,7 +611,7 @@
     showFail();
 
     try{
-      startAmbient(); // must be after click
+      startAmbient();
 
       stream = await navigator.mediaDevices.getUserMedia({ video:true, audio:false });
       vid.srcObject = stream;
@@ -645,6 +666,8 @@
 
   function goCoward(){
     stopCam();
+    // ensure coward page also reflects the updated fail message immediately
+    showFail();
     location.hash = "#coward";
     document.body.classList.add("coward");
   }
