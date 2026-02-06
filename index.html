@@ -167,7 +167,7 @@
     user-select:none;
   }
 
-  /* Fail-state whisper (stillness fails, camera denied, etc.) */
+  /* Fail whisper (non-stop failures) */
   .fail{
     margin-top:6px;
     font-size:11px;
@@ -250,7 +250,7 @@
     100% { transform: scale(2.00); filter: blur(1.25px); }
   }
 
-  /* ===== Coward “page” (single Stop) ===== */
+  /* ===== Coward “page” (Stop 1-2) — now becomes the confession chat ===== */
   .cowardPage{
     position:absolute;
     inset:0;
@@ -267,56 +267,154 @@
   .cowardPage::before{
     content:"";
     position:absolute;
-    inset:-15%;
-    opacity:.18;
-    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='900' height='500'%3E%3Crect width='100%25' height='100%25' fill='black'/%3E%3Cg fill='white' fill-opacity='0.90' font-family='Arial' font-weight='900'%3E%3Ctext x='0' y='120' font-size='140'%3ECOWARD%3C/text%3E%3Ctext x='140' y='280' font-size='140'%3ECOWARD%3C/text%3E%3Ctext x='40' y='450' font-size='140'%3ECOWARD%3C/text%3E%3C/g%3E%3C/svg%3E");
-    background-size: 760px 520px;
-    background-repeat: repeat;
-    transform: rotate(-10deg) scale(1.12);
-    filter: blur(0.35px);
+    inset:-18%;
+    opacity:.14;
+    background:
+      repeating-radial-gradient(circle,
+        rgba(255,255,255,1) 0px,
+        rgba(255,255,255,1) 2px,
+        rgba(0,0,0,1) 2px,
+        rgba(0,0,0,1) 20px);
+    transform: rotate(-8deg) scale(1.2);
+    filter: blur(0.35px) contrast(1.05);
   }
 
   .cowardInner{
     position:relative;
-    text-align:center;
-    padding:30px 22px;
+    text-align:left;
+    padding:22px 20px;
     border-radius:18px;
-    background:rgba(0,0,0,.55);
+    background:rgba(0,0,0,.62);
     box-shadow: inset 0 0 0 1px rgba(255,255,255,.10);
     backdrop-filter: blur(10px);
     -webkit-backdrop-filter: blur(10px);
-    max-width:min(86vw,760px);
+    max-width:min(90vw,760px);
+    width:min(90vw,760px);
   }
 
-  .cowardInner h2{
-    margin:0 0 14px;
-    font-size: clamp(52px, 8vw, 110px);
-    letter-spacing:.22em;
+  .cowardTitle{
+    margin:0 0 6px;
+    font-size:18px;
+    letter-spacing:.18em;
     text-transform:uppercase;
-    line-height:1;
   }
 
-  .cowardInner .small{
-    margin:0 0 18px;
-    opacity:.62;
-    letter-spacing:.12em;
+  .cowardSub{
+    margin:0 0 16px;
+    opacity:.70;
+    letter-spacing:.10em;
     text-transform:uppercase;
-    font-size:12px;
-  }
-
-  .cowardInner .backBtn{
-    border:0;
-    border-radius:999px;
-    padding:12px 16px;
-    background:rgba(255,255,255,.12);
-    color:#fff;
     font-size:11px;
-    letter-spacing:.15em;
+    line-height:1.35;
+  }
+
+  .chat{
+    height:min(42vh,320px);
+    overflow:auto;
+    padding:12px;
+    border-radius:14px;
+    background:rgba(255,255,255,.04);
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,.06);
+    margin-bottom:12px;
+  }
+
+  .bubble{
+    max-width: 82%;
+    padding:10px 12px;
+    border-radius:14px;
+    margin:8px 0;
+    font-size:12px;
+    line-height:1.45;
+    letter-spacing:.02em;
+    white-space:pre-wrap;
+    word-wrap:break-word;
+  }
+
+  .bubble.user{
+    margin-left:auto;
+    background:rgba(255,255,255,.10);
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,.08);
+  }
+
+  .bubble.system{
+    margin-right:auto;
+    background:rgba(0,0,0,.35);
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,.08);
+    opacity:.92;
+  }
+
+  .inputRow{
+    display:flex;
+    gap:10px;
+    align-items:flex-end;
+  }
+
+  .promptCol{
+    flex:1;
+  }
+
+  .label{
+    font-size:11px;
+    letter-spacing:.16em;
     text-transform:uppercase;
-    cursor:pointer;
+    opacity:.70;
+    margin:0 0 6px;
+  }
+
+  .smallLabel{
+    font-size:11px;
+    letter-spacing:.14em;
+    text-transform:uppercase;
+    opacity:.55;
+    margin:0 0 10px;
+  }
+
+  textarea{
+    width:100%;
+    resize:none;
+    min-height:52px;
+    max-height:120px;
+    padding:12px 12px;
+    border-radius:14px;
+    border:0;
+    outline:none;
+    background:rgba(255,255,255,.06);
+    color:#fff;
+    font-size:12px;
+    line-height:1.45;
     box-shadow: inset 0 0 0 1px rgba(255,255,255,.10);
   }
-  .cowardInner .backBtn:hover{ background:rgba(255,255,255,.18); }
+
+  .cowardBtns{
+    display:flex;
+    gap:10px;
+    align-items:center;
+    justify-content:flex-end;
+  }
+
+  .ghostBtn{
+    background:rgba(255,255,255,.08);
+  }
+
+  .choiceRow{
+    display:flex;
+    gap:10px;
+    margin-top:10px;
+    justify-content:flex-end;
+  }
+
+  .choiceRow button{
+    padding:10px 12px;
+  }
+
+  .note{
+    margin-top:10px;
+    font-size:10px;
+    letter-spacing:.14em;
+    text-transform:uppercase;
+    opacity:.38;
+    user-select:none;
+  }
 
   /* ===== LOCKED “fail page” after 3 Stops ===== */
   .lockedPage{
@@ -393,6 +491,8 @@
     .stage{ aspect-ratio:9/16; }
     body.mirroring .center{ transform:translateY(-80vh); }
     .instruction{ font-size:10px; letter-spacing:.14em; padding:9px 10px; }
+    .cowardInner{ text-align:left; }
+    .chat{ height:min(46vh,360px); }
   }
 </style>
 </head>
@@ -404,14 +504,35 @@
 
     <div class="portal" id="portal"></div>
 
+    <!-- Coward page -> confession chat -->
     <div class="cowardPage" id="cowardPage">
       <div class="cowardInner">
-        <h2>COWARD</h2>
-        <div class="small">You looked away.</div>
-        <button class="backBtn" id="backBtn">Go back</button>
+        <div class="cowardTitle">What are you avoiding</div>
+        <div class="cowardSub">Is the mirror hard to look at?</div>
+
+        <div class="chat" id="chat"></div>
+
+        <div class="inputRow">
+          <div class="promptCol">
+            <div class="label">Say it.</div>
+            <textarea id="confession" placeholder="type here..."></textarea>
+            <div class="note">This is a scripted reflection gate (no server, no real AI).</div>
+          </div>
+        </div>
+
+        <div class="choiceRow" id="choiceRow" style="display:none;">
+          <button id="readyYes">Yes</button>
+          <button class="ghostBtn" id="readyNo">No</button>
+        </div>
+
+        <div class="cowardBtns" style="margin-top:10px;">
+          <button class="ghostBtn" id="sendBtn">Send</button>
+          <button class="ghostBtn" id="backBtn">Go back</button>
+        </div>
       </div>
     </div>
 
+    <!-- Locked after 3 Stops -->
     <div class="lockedPage" id="lockedPage">
       <div class="lockedInner">
         <h2>LOCKED</h2>
@@ -420,6 +541,7 @@
       </div>
     </div>
 
+    <!-- Main HUD -->
     <div class="hud">
       <div class="top">
         <div class="instruction">HOLD STILL, BE PRESENT</div>
@@ -460,10 +582,20 @@
   const statusEl = document.getElementById("status");
   const portal = document.getElementById("portal");
   const clock = document.getElementById("clock");
+
+  // Coward chat elements
+  const chatEl = document.getElementById("chat");
+  const confessionEl = document.getElementById("confession");
+  const sendBtn = document.getElementById("sendBtn");
   const backBtn = document.getElementById("backBtn");
+  const choiceRow = document.getElementById("choiceRow");
+  const readyYes = document.getElementById("readyYes");
+  const readyNo = document.getElementById("readyNo");
+
+  // Locked elements
   const returnLink = document.getElementById("returnLink");
 
-  // ===== Fail whisper (non-stop failures) =====
+  // ===== Fail whisper (stillness fails, camera denied, etc.) =====
   const failEl = document.getElementById("fail");
   const FAIL_KEY = "spiral_fail_count";
   let failCount = Number(localStorage.getItem(FAIL_KEY) || 0);
@@ -514,8 +646,7 @@
       sub.textContent = "The gate will not open.";
     } else {
       document.body.classList.remove("locked");
-      startBtn.disabled = false;
-      // stopTop disabled handled by camera state
+      // startBtn enabled/disabled managed by camera state
     }
   }
 
@@ -523,7 +654,6 @@
     locked = true;
     localStorage.setItem(LOCK_KEY, "1");
     document.body.classList.add("locked");
-    // ensure camera is off and buttons disabled
     stopCam(true);
     applyLockedUI();
   }
@@ -569,14 +699,12 @@
 
   const NEED = 7000;
 
-  // Hysteresis thresholds
   const STILL_THRESH = 6.0;
   const MOVE_THRESH  = 12.0;
   const FINISH_QUIET  = 6.0;
 
   const PORTAL_DELAY = 240;
 
-  // Audio fade
   const AUDIO_FADE_MS = 1400;
   const PORTAL_TOTAL_MS = 5600;
   const REDIRECT_AFTER = Math.max(900, PORTAL_TOTAL_MS - 250);
@@ -682,8 +810,10 @@
     if (triggered || locked) return;
     triggered = true;
 
-    // success forgives (and also clears the stop counter so the lockout is truly about quitting)
+    // success forgives
     clearFail();
+
+    // if they succeed, they "proved" they won't quit -> reset stop counter
     stopCount = 0;
     localStorage.setItem(STOP_KEY, "0");
 
@@ -752,14 +882,8 @@
     }
   }
 
-  // force = true prevents counting as a stop/fail when we lock the page
+  // force = true prevents messing with stop counter when we lock or route
   function stopCam(force=false){
-    if (!force){
-      // stopping the camera manually is NOT counted as a "fail whisper" here anymore;
-      // your "hard" punishment is the 3-stop lockout instead.
-      // (We still allow fail whisper to be about actual reflection failures / denied cam.)
-    }
-
     if (raf) cancelAnimationFrame(raf);
     raf = null;
 
@@ -779,6 +903,122 @@
     stopAmbient();
   }
 
+  /* ============================
+     Coward Chat (Option A)
+     Scripted “pseudo-AI” conversation
+  ============================ */
+  const CHAT_KEY = "spiral_coward_chat_state";
+  let chatState = JSON.parse(localStorage.getItem(CHAT_KEY) || "null") || {
+    turns: 0,
+    opened: 0
+  };
+
+  function saveChatState(){
+    localStorage.setItem(CHAT_KEY, JSON.stringify(chatState));
+  }
+
+  function clearChat(){
+    chatEl.innerHTML = "";
+    chatState.turns = 0;
+    saveChatState();
+    choiceRow.style.display = "none";
+  }
+
+  function scrollChat(){
+    chatEl.scrollTop = chatEl.scrollHeight;
+  }
+
+  function addBubble(text, who){
+    const div = document.createElement("div");
+    div.className = "bubble " + who;
+    div.textContent = text;
+    chatEl.appendChild(div);
+    scrollChat();
+  }
+
+  function analyze(text){
+    const t = (text || "").toLowerCase();
+    const has = (w) => t.includes(w);
+
+    // tiny keyword-based flavor (still “solvable by anyone”, but feels personal)
+    if (has("work") || has("job") || has("career")) return "You keep calling it “work” so you don’t have to call it fear.";
+    if (has("love") || has("relationship") || has("her") || has("him")) return "You keep saying their name. The mirror keeps saying yours.";
+    if (has("money") || has("rent") || has("broke")) return "Numbers are a mask. Under the mask is a body holding its breath.";
+    if (has("death") || has("dying") || has("mortality")) return "You looked away from the mirror. Not from the end.";
+    if (has("anxiety") || has("panic") || has("stress")) return "Anxiety is movement without travel.";
+    if (has("alone") || has("lonely")) return "Loneliness is a room that echoes when you finally speak.";
+    if (has("art") || has("create") || has("music")) return "Creation is a confession you can pretend is aesthetic.";
+    return "Say it in one sentence. Don’t decorate it.";
+  }
+
+  function systemReply(userText){
+    const turns = chatState.turns;
+
+    if (turns === 0){
+      return "Good. A direct answer is rare. Read it back to yourself, slowly.";
+    }
+    if (turns === 1){
+      return analyze(userText) + "\n\nIf the mirror is hard to look at, what are you protecting?";
+    }
+    if (turns === 2){
+      return "You can keep moving forever.\nOr you can stay.\n\nAre you ready to go back?";
+    }
+    // fallback
+    return "Are you ready to go back?";
+  }
+
+  function presentReadyChoice(){
+    choiceRow.style.display = "flex";
+    scrollChat();
+  }
+
+  function enterCoward(){
+    document.body.classList.add("coward");
+
+    // first time opening this session: seed the chat
+    if (!chatEl.children.length){
+      addBubble("You looked away.", "system");
+      addBubble("What are you avoiding?", "system");
+    }
+
+    chatState.opened += 1;
+    saveChatState();
+    confessionEl.focus();
+  }
+
+  function leaveCoward(){
+    document.body.classList.remove("coward");
+    location.hash = "";
+  }
+
+  function handleSend(){
+    if (locked) return;
+
+    const text = confessionEl.value.trim();
+    if (!text) return;
+
+    // user bubble
+    addBubble(text, "user");
+    confessionEl.value = "";
+
+    // scripted “pseudo AI” reply
+    const reply = systemReply(text);
+    setTimeout(() => {
+      addBubble(reply, "system");
+
+      chatState.turns += 1;
+      saveChatState();
+
+      // after 3 user messages (turns 0,1,2) ask ready and show buttons
+      if (chatState.turns >= 3){
+        presentReadyChoice();
+      }
+    }, 450);
+  }
+
+  /* ============================
+     Routes / Stop behavior
+  ============================ */
   function goCoward(){
     // pressing Stop increments stop counter; on the 3rd stop, you get LOCKED
     const nowLocked = registerStop();
@@ -793,12 +1033,11 @@
     }
 
     location.hash = "#coward";
-    document.body.classList.add("coward");
+    enterCoward();
   }
 
   function backFromCoward(){
-    location.hash = "";
-    document.body.classList.remove("coward");
+    leaveCoward();
     statusEl.textContent = "Mirror idle";
     hint.textContent = "Hold still.";
     sub.textContent = "The gate opens in reflection.";
@@ -866,6 +1105,7 @@
     if (location.hash === "#coward"){
       document.body.classList.add("coward");
       document.body.classList.remove("locked");
+      enterCoward();
     } else if (location.hash === "#locked"){
       document.body.classList.add("locked");
       document.body.classList.remove("coward");
@@ -879,13 +1119,33 @@
   }
   window.addEventListener("hashchange", syncRoute);
 
+  // Buttons
   startBtn.onclick = startCam;
   stopTop.onclick = goCoward;
-  backBtn.onclick = backFromCoward;
 
-  // clicking the link is the only way to remove the lock
-  returnLink.onclick = (e) => {
-    // allow hash change handler to do the unlock
+  backBtn.onclick = backFromCoward;
+  sendBtn.onclick = handleSend;
+
+  confessionEl.addEventListener("keydown", (e) => {
+    if ((e.ctrlKey || e.metaKey) && e.key === "Enter"){
+      e.preventDefault();
+      handleSend();
+    }
+  });
+
+  readyYes.onclick = () => {
+    // redirect them back to the mirror page (original)
+    // keep stopCount as-is; the lock still happens if they keep quitting.
+    addBubble("Then return.", "system");
+    choiceRow.style.display = "none";
+    setTimeout(() => {
+      backFromCoward();
+    }, 650);
+  };
+
+  readyNo.onclick = () => {
+    addBubble("Then stay here with it a moment longer.", "system");
+    choiceRow.style.display = "none";
   };
 
   document.addEventListener("visibilitychange", () => {
@@ -896,6 +1156,7 @@
   if (locked){
     location.hash = "#locked";
   }
+
   showFail();
   applyLockedUI();
   syncRoute();
