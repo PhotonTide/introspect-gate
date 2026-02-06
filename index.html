@@ -167,6 +167,19 @@
     user-select:none;
   }
 
+  /* Fail-state whisper */
+  .fail{
+    margin-top:6px;
+    font-size:11px;
+    opacity:0;
+    letter-spacing:.12em;
+    text-transform:uppercase;
+    color:rgba(255,255,255,.55);
+    transition: opacity 1.2s ease;
+    user-select:none;
+  }
+  .fail.show{ opacity:1; }
+
   .bottom{
     display:flex;
     justify-content:space-between;
@@ -343,6 +356,7 @@
           <button id="start">Enable Mirror</button>
         </div>
         <div class="hint" id="hint">Hold still.</div>
+        <div class="fail" id="fail"></div>
       </div>
 
       <div class="bottom">
@@ -367,6 +381,41 @@
   const portal = document.getElementById("portal");
   const clock = document.getElementById("clock");
   const backBtn = document.getElementById("backBtn");
+
+  // ===== Fail-state memory =====
+  const failEl = document.getElementById("fail");
+  const FAIL_KEY = "spiral_fail_count";
+  let failCount = Number(localStorage.getItem(FAIL_KEY) || 0);
+
+  const failMessages = [
+    "You weren’t ready.",
+    "Return when quiet.",
+    "The spiral remembers."
+  ];
+
+  function showFail(){
+    if (failCount < 3) {
+      failEl.textContent = "";
+      failEl.classList.remove("show");
+      return;
+    }
+    const idx = Math.min(failMessages.length - 1, failCount - 3);
+    failEl.textContent = failMessages[idx];
+    failEl.classList.add("show");
+  }
+
+  function registerFail(){
+    failCount += 1;
+    localStorage.setItem(FAIL_KEY, String(failCount));
+    showFail();
+  }
+
+  function clearFail(){
+    failCount = 0;
+    localStorage.removeItem(FAIL_KEY);
+    failEl.textContent = "";
+    failEl.classList.remove("show");
+  }
 
   let stream = null;
   let raf = null;
@@ -501,6 +550,9 @@
     if (triggered) return;
     triggered = true;
 
+    // success forgives
+    clearFail();
+
     hint.textContent = "Falling inward.";
     sub.textContent = "Recognized.";
 
@@ -534,6 +586,9 @@
     document.body.classList.remove("coward");
     document.body.classList.remove("mirroring");
 
+    // show any remembered failure whisper when they return
+    showFail();
+
     try{
       startAmbient(); // must be after click
 
@@ -557,11 +612,18 @@
       hint.textContent = "Reflection required.";
       startBtn.disabled = false;
       stopTop.disabled = true;
+
+      // camera denied counts as a "fail"
+      registerFail();
+
       stopAmbient();
     }
   }
 
   function stopCam(){
+    // stopping is a "failure" event (unless we've already triggered success)
+    if (!triggered) registerFail();
+
     if (raf) cancelAnimationFrame(raf);
     raf = null;
 
@@ -593,6 +655,7 @@
     statusEl.textContent = "Mirror idle";
     hint.textContent = "Hold still.";
     sub.textContent = "The gate opens in reflection.";
+    showFail();
   }
 
   function motionScore(){
@@ -673,4 +736,3 @@
 
 </body>
 </html>
-
