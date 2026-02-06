@@ -167,7 +167,7 @@
     user-select:none;
   }
 
-  /* Fail-state whisper */
+  /* Fail-state whisper (stillness fails, camera denied, etc.) */
   .fail{
     margin-top:6px;
     font-size:11px;
@@ -250,6 +250,7 @@
     100% { transform: scale(2.00); filter: blur(1.25px); }
   }
 
+  /* ===== Coward “page” (single Stop) ===== */
   .cowardPage{
     position:absolute;
     inset:0;
@@ -296,25 +297,12 @@
   }
 
   .cowardInner .small{
-    margin:0 0 10px;
+    margin:0 0 18px;
     opacity:.62;
     letter-spacing:.12em;
     text-transform:uppercase;
     font-size:12px;
   }
-
-  /* fail whisper on coward page */
-  .cowardFail{
-    margin:0 0 18px;
-    font-size:11px;
-    opacity:0;
-    letter-spacing:.12em;
-    text-transform:uppercase;
-    color:rgba(255,255,255,.55);
-    transition: opacity 1.2s ease;
-    user-select:none;
-  }
-  .cowardFail.show{ opacity:1; }
 
   .cowardInner .backBtn{
     border:0;
@@ -329,6 +317,77 @@
     box-shadow: inset 0 0 0 1px rgba(255,255,255,.10);
   }
   .cowardInner .backBtn:hover{ background:rgba(255,255,255,.18); }
+
+  /* ===== LOCKED “fail page” after 3 Stops ===== */
+  .lockedPage{
+    position:absolute;
+    inset:0;
+    background:#000;
+    z-index:120;
+    display:none;
+    overflow:hidden;
+    align-items:center;
+    justify-content:center;
+    pointer-events:auto;
+  }
+  body.locked .lockedPage{ display:flex; }
+
+  .lockedPage::before{
+    content:"";
+    position:absolute;
+    inset:-20%;
+    opacity:.10;
+    background:
+      repeating-radial-gradient(circle,
+        rgba(255,255,255,1) 0px,
+        rgba(255,255,255,1) 2px,
+        rgba(0,0,0,1) 2px,
+        rgba(0,0,0,1) 18px);
+    transform: rotate(9deg) scale(1.25);
+    filter: blur(0.35px) contrast(1.1);
+  }
+
+  .lockedInner{
+    position:relative;
+    text-align:center;
+    padding:30px 22px;
+    border-radius:18px;
+    background:rgba(0,0,0,.62);
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,.10);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    max-width:min(86vw,760px);
+  }
+
+  .lockedInner h2{
+    margin:0 0 12px;
+    font-size: clamp(44px, 7vw, 96px);
+    letter-spacing:.22em;
+    text-transform:uppercase;
+    line-height:1;
+  }
+
+  .lockedInner .small{
+    margin:0 0 18px;
+    opacity:.62;
+    letter-spacing:.12em;
+    text-transform:uppercase;
+    font-size:12px;
+  }
+
+  .lockedInner a{
+    display:inline-block;
+    border-radius:999px;
+    padding:12px 16px;
+    background:rgba(255,255,255,.12);
+    color:#fff;
+    font-size:11px;
+    letter-spacing:.15em;
+    text-transform:uppercase;
+    text-decoration:none;
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,.10);
+  }
+  .lockedInner a:hover{ background:rgba(255,255,255,.18); }
 
   @media(max-width:520px){
     .stage{ aspect-ratio:9/16; }
@@ -349,8 +408,15 @@
       <div class="cowardInner">
         <h2>COWARD</h2>
         <div class="small">You looked away.</div>
-        <div class="cowardFail" id="cowardFail"></div>
         <button class="backBtn" id="backBtn">Go back</button>
+      </div>
+    </div>
+
+    <div class="lockedPage" id="lockedPage">
+      <div class="lockedInner">
+        <h2>LOCKED</h2>
+        <div class="small">You chose the exit three times. The gate will not open.</div>
+        <a href="#return" id="returnLink">Return and try again</a>
       </div>
     </div>
 
@@ -395,11 +461,10 @@
   const portal = document.getElementById("portal");
   const clock = document.getElementById("clock");
   const backBtn = document.getElementById("backBtn");
+  const returnLink = document.getElementById("returnLink");
 
-  // ===== Fail-state memory =====
+  // ===== Fail whisper (non-stop failures) =====
   const failEl = document.getElementById("fail");
-  const cowardFailEl = document.getElementById("cowardFail");
-
   const FAIL_KEY = "spiral_fail_count";
   let failCount = Number(localStorage.getItem(FAIL_KEY) || 0);
 
@@ -409,27 +474,15 @@
     "The spiral remembers."
   ];
 
-  function applyFailText(el, text){
-    if (!el) return;
-    if (!text){
-      el.textContent = "";
-      el.classList.remove("show");
+  function showFail(){
+    if (failCount < 3) {
+      failEl.textContent = "";
+      failEl.classList.remove("show");
       return;
     }
-    el.textContent = text;
-    el.classList.add("show");
-  }
-
-  function currentFailMessage(){
-    if (failCount < 3) return "";
     const idx = Math.min(failMessages.length - 1, failCount - 3);
-    return failMessages[idx];
-  }
-
-  function showFail(){
-    const msg = currentFailMessage();
-    applyFailText(failEl, msg);
-    applyFailText(cowardFailEl, msg);
+    failEl.textContent = failMessages[idx];
+    failEl.classList.add("show");
   }
 
   function registerFail(){
@@ -441,8 +494,64 @@
   function clearFail(){
     failCount = 0;
     localStorage.removeItem(FAIL_KEY);
-    applyFailText(failEl, "");
-    applyFailText(cowardFailEl, "");
+    failEl.textContent = "";
+    failEl.classList.remove("show");
+  }
+
+  // ===== STOP lockout after 3 stops =====
+  const STOP_KEY = "spiral_stop_count";
+  const LOCK_KEY = "spiral_locked";
+  let stopCount = Number(localStorage.getItem(STOP_KEY) || 0);
+  let locked = (localStorage.getItem(LOCK_KEY) === "1");
+
+  function applyLockedUI(){
+    if (locked){
+      document.body.classList.add("locked");
+      startBtn.disabled = true;
+      stopTop.disabled = true;
+      statusEl.textContent = "Locked";
+      hint.textContent = "Return and try again.";
+      sub.textContent = "The gate will not open.";
+    } else {
+      document.body.classList.remove("locked");
+      startBtn.disabled = false;
+      // stopTop disabled handled by camera state
+    }
+  }
+
+  function lockNow(){
+    locked = true;
+    localStorage.setItem(LOCK_KEY, "1");
+    document.body.classList.add("locked");
+    // ensure camera is off and buttons disabled
+    stopCam(true);
+    applyLockedUI();
+  }
+
+  function unlockNow(){
+    locked = false;
+    stopCount = 0;
+    localStorage.setItem(STOP_KEY, "0");
+    localStorage.removeItem(LOCK_KEY);
+    document.body.classList.remove("locked");
+    document.body.classList.remove("coward");
+    location.hash = "";
+    resetGate();
+    applyLockedUI();
+    statusEl.textContent = "Mirror idle";
+    hint.textContent = "Hold still.";
+    sub.textContent = "The gate opens in reflection.";
+    showFail();
+  }
+
+  function registerStop(){
+    stopCount += 1;
+    localStorage.setItem(STOP_KEY, String(stopCount));
+    if (stopCount >= 3){
+      lockNow();
+      return true;
+    }
+    return false;
   }
 
   let stream = null;
@@ -467,12 +576,10 @@
 
   const PORTAL_DELAY = 240;
 
-  // We’ll fade the audio OUT before redirecting.
+  // Audio fade
   const AUDIO_FADE_MS = 1400;
-
-  // Total time from portal start to redirect:
   const PORTAL_TOTAL_MS = 5600;
-  const REDIRECT_AFTER = Math.max(900, PORTAL_TOTAL_MS - 250); // ~end of fall
+  const REDIRECT_AFTER = Math.max(900, PORTAL_TOTAL_MS - 250);
 
   // ===== Ambient sound (procedural) =====
   let audioCtx = null, master = null;
@@ -572,11 +679,13 @@
   }
 
   function beginPortal(){
-    if (triggered) return;
+    if (triggered || locked) return;
     triggered = true;
 
-    // success forgives
+    // success forgives (and also clears the stop counter so the lockout is truly about quitting)
     clearFail();
+    stopCount = 0;
+    localStorage.setItem(STOP_KEY, "0");
 
     hint.textContent = "Falling inward.";
     sub.textContent = "Recognized.";
@@ -602,12 +711,16 @@
   }
 
   async function startCam(){
+    if (locked){
+      applyLockedUI();
+      return;
+    }
+
     if (location.hash === "#coward") location.hash = "";
     resetGate();
     document.body.classList.remove("coward");
     document.body.classList.remove("mirroring");
 
-    // show any remembered failure whisper when they return
     showFail();
 
     try{
@@ -634,16 +747,18 @@
       startBtn.disabled = false;
       stopTop.disabled = true;
 
-      // camera denied counts as a "fail"
       registerFail();
-
       stopAmbient();
     }
   }
 
-  function stopCam(){
-    // stopping is a "failure" event (unless we've already triggered success)
-    if (!triggered) registerFail();
+  // force = true prevents counting as a stop/fail when we lock the page
+  function stopCam(force=false){
+    if (!force){
+      // stopping the camera manually is NOT counted as a "fail whisper" here anymore;
+      // your "hard" punishment is the 3-stop lockout instead.
+      // (We still allow fail whisper to be about actual reflection failures / denied cam.)
+    }
 
     if (raf) cancelAnimationFrame(raf);
     raf = null;
@@ -653,11 +768,11 @@
     }
     stream = null;
 
-    startBtn.disabled = false;
+    startBtn.disabled = locked ? true : false;
     stopTop.disabled = true;
 
-    statusEl.textContent = "Mirror stopped";
-    hint.textContent = "Look inward.";
+    statusEl.textContent = locked ? "Locked" : "Mirror stopped";
+    hint.textContent = locked ? "Return and try again." : "Look inward.";
 
     document.body.classList.remove("mirroring");
     resetGate();
@@ -665,9 +780,18 @@
   }
 
   function goCoward(){
-    stopCam();
-    // ensure coward page also reflects the updated fail message immediately
-    showFail();
+    // pressing Stop increments stop counter; on the 3rd stop, you get LOCKED
+    const nowLocked = registerStop();
+    stopCam(true);
+
+    if (nowLocked){
+      location.hash = "#locked";
+      document.body.classList.add("locked");
+      document.body.classList.remove("coward");
+      applyLockedUI();
+      return;
+    }
+
     location.hash = "#coward";
     document.body.classList.add("coward");
   }
@@ -709,7 +833,7 @@
 
   let lastT = performance.now();
   function loop(){
-    if (!stream) return;
+    if (!stream || locked) return;
 
     const now = performance.now();
     const dt = now - lastT;
@@ -741,20 +865,40 @@
   function syncRoute(){
     if (location.hash === "#coward"){
       document.body.classList.add("coward");
+      document.body.classList.remove("locked");
+    } else if (location.hash === "#locked"){
+      document.body.classList.add("locked");
+      document.body.classList.remove("coward");
+    } else if (location.hash === "#return"){
+      // the only way out of the locked page is clicking the link
+      unlockNow();
     } else {
       document.body.classList.remove("coward");
+      document.body.classList.remove("locked");
     }
   }
   window.addEventListener("hashchange", syncRoute);
-  syncRoute();
 
   startBtn.onclick = startCam;
   stopTop.onclick = goCoward;
   backBtn.onclick = backFromCoward;
 
+  // clicking the link is the only way to remove the lock
+  returnLink.onclick = (e) => {
+    // allow hash change handler to do the unlock
+  };
+
   document.addEventListener("visibilitychange", () => {
-    if (document.hidden) stopCam();
+    if (document.hidden) stopCam(true);
   });
+
+  // apply lock on load if it was triggered previously
+  if (locked){
+    location.hash = "#locked";
+  }
+  showFail();
+  applyLockedUI();
+  syncRoute();
 </script>
 
 </body>
