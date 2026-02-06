@@ -6,589 +6,1300 @@
 <title>SPIRAL IN</title>
 
 <style>
-html,body{
-  height:100%;
-  margin:0;
-  background:#000;
-  color:#fff;
-  overflow:hidden;
-  font-family:system-ui,Arial,sans-serif;
-}
+  html,body{
+    height:100%;
+    margin:0;
+    background:#000;
+    color:#fff;
+    overflow:hidden;
+    font-family:system-ui,Arial,sans-serif;
+  }
 
-.wrap{height:100%;display:grid;place-items:center;}
+  .wrap{ height:100%; display:grid; place-items:center; }
 
-.stage{
-  position:relative;
-  width:min(92vw,900px);
-  aspect-ratio:16/9;
-  border-radius:18px;
-  overflow:hidden;
-  background:#000;
-  box-shadow:0 0 60px rgba(0,0,0,.8);
-}
+  .stage{
+    position:relative;
+    width:min(92vw,900px);
+    aspect-ratio:16/9;
+    border-radius:18px;
+    overflow:hidden;
+    background:#000;
+    box-shadow:0 0 60px rgba(0,0,0,.8);
+  }
 
-video{
-  position:absolute;
-  inset:0;
-  width:100%;
-  height:100%;
-  object-fit:cover;
-  transform:scaleX(-1);
-  filter:grayscale(100%) contrast(1.15);
-}
+  video{
+    position:absolute;
+    inset:0;
+    width:100%;
+    height:100%;
+    object-fit:cover;
+    transform:scaleX(-1);
+    filter: grayscale(100%) contrast(1.16) brightness(1.06);
+  }
 
-/* HUD */
+  .hud{
+    position:absolute;
+    inset:0;
+    display:grid;
+    grid-template-rows:auto 1fr auto;
+    padding:18px;
+    z-index:10;
+    pointer-events:none;
+  }
 
-.hud{
-  position:absolute;
-  inset:0;
-  display:grid;
-  grid-template-rows:auto 1fr auto;
-  padding:18px;
-  z-index:10;
-  pointer-events:none;
-}
+  .top{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    gap:12px;
+    user-select:none;
+  }
 
-.top{
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-}
+  .instruction{
+    pointer-events:none;
+    display:inline-flex;
+    align-items:center;
+    padding:10px 12px;
+    border-radius:999px;
+    background:rgba(255,255,255,.72);
+    color:#000;
+    font-size:11px;
+    letter-spacing:.18em;
+    text-transform:uppercase;
+    box-shadow: inset 0 0 0 1px rgba(0,0,0,.10);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    white-space:nowrap;
+  }
 
-.instruction{
-  background:rgba(255,255,255,.75);
-  color:#000;
-  padding:9px 12px;
-  border-radius:999px;
-  font-size:11px;
-  letter-spacing:.18em;
-  text-transform:uppercase;
-}
+  .topRight{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    pointer-events:auto;
+  }
 
-.topRight{
-  display:flex;
-  gap:10px;
-  pointer-events:auto;
-}
+  .clock{
+    font-size:11px;
+    letter-spacing:.16em;
+    text-transform:uppercase;
+    opacity:.55;
+  }
 
-.clock{
-  font-size:11px;
-  opacity:.55;
-  letter-spacing:.15em;
-}
+  .stopTop{
+    border:0;
+    border-radius:999px;
+    padding:10px 12px;
+    background:rgba(255,255,255,.10);
+    color:#fff;
+    font-size:11px;
+    letter-spacing:.15em;
+    text-transform:uppercase;
+    cursor:pointer;
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,.10);
+  }
+  .stopTop:hover{ background:rgba(255,255,255,.16); }
+  .stopTop[disabled]{ opacity:.35; cursor:not-allowed; }
 
-.stopTop{
-  border:0;
-  border-radius:999px;
-  padding:9px 12px;
-  background:rgba(255,255,255,.1);
-  color:#fff;
-  font-size:11px;
-  letter-spacing:.15em;
-  cursor:pointer;
-}
+  .center{
+    align-self:center;
+    justify-self:center;
+    background:rgba(0,0,0,.62);
+    padding:24px 22px;
+    border-radius:16px;
+    text-align:center;
+    pointer-events:auto;
+    transition: transform 700ms cubic-bezier(.14,.9,.18,1), opacity 520ms ease, filter 700ms ease;
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,.08);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    max-width:min(86vw,640px);
+  }
 
-.stopTop:hover{background:rgba(255,255,255,.18);}
-.stopTop[disabled]{opacity:.35;}
+  body.mirroring .center{
+    transform:translateY(-60vh);
+    opacity:0;
+    filter:blur(2px);
+    pointer-events:none;
+  }
 
-.center{
-  align-self:center;
-  justify-self:center;
-  background:rgba(0,0,0,.6);
-  padding:24px;
-  border-radius:16px;
-  text-align:center;
-  pointer-events:auto;
-  transition:.7s;
-}
+  h1{
+    margin:0 0 10px;
+    letter-spacing:.2em;
+    text-transform:uppercase;
+    font-size:22px;
+  }
 
-body.mirroring .center{
-  transform:translateY(-60vh);
-  opacity:0;
-}
+  p{
+    margin:0 0 16px;
+    opacity:.72;
+    font-size:13px;
+    line-height:1.45;
+  }
 
-h1{
-  margin:0 0 10px;
-  letter-spacing:.2em;
-  text-transform:uppercase;
-}
+  .row{
+    display:flex;
+    gap:10px;
+    justify-content:center;
+    flex-wrap:wrap;
+  }
 
-button{
-  border:0;
-  border-radius:999px;
-  padding:10px 14px;
-  background:rgba(255,255,255,.1);
-  color:#fff;
-  font-size:11px;
-  letter-spacing:.15em;
-  cursor:pointer;
-}
+  button, .btn{
+    border:0;
+    border-radius:999px;
+    padding:10px 14px;
+    background:rgba(255,255,255,.10);
+    color:#fff;
+    font-size:11px;
+    letter-spacing:.15em;
+    text-transform:uppercase;
+    cursor:pointer;
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,.10);
+  }
+  button:hover, .btn:hover{ background:rgba(255,255,255,.18); }
+  button[disabled], .btn[disabled]{ opacity:.35; cursor:not-allowed; }
 
-button:hover{background:rgba(255,255,255,.2);}
-button[disabled]{opacity:.35;}
+  .hint{
+    margin-top:12px;
+    font-size:12px;
+    opacity:.58;
+    letter-spacing:.10em;
+    user-select:none;
+  }
 
-.hint{font-size:12px;opacity:.6;}
+  /* Fail whisper (non-stop failures) */
+  .fail{
+    margin-top:6px;
+    font-size:11px;
+    opacity:0;
+    letter-spacing:.12em;
+    text-transform:uppercase;
+    color:rgba(255,255,255,.55);
+    transition: opacity 1.2s ease;
+    user-select:none;
+  }
+  .fail.show{ opacity:1; }
 
-.bottom{
-  display:flex;
-  justify-content:space-between;
-  font-size:11px;
-  opacity:.55;
-}
+  .bottom{
+    display:flex;
+    justify-content:space-between;
+    font-size:11px;
+    letter-spacing:.15em;
+    text-transform:uppercase;
+    opacity:.55;
+    user-select:none;
+  }
 
-/* Portal */
+  .portal{
+    position:absolute;
+    inset:0;
+    pointer-events:none;
+    opacity:0;
+    z-index:50;
+  }
 
-.portal{
-  position:absolute;
-  inset:0;
-  opacity:0;
-  pointer-events:none;
-  z-index:40;
-}
+  .portal.on{
+    opacity:1;
+    animation: fall 5600ms cubic-bezier(.10,.92,.16,1) forwards;
+  }
 
-.portal.on{
-  opacity:1;
-  animation:fall 5.6s ease forwards;
-}
+  .portal::before{
+    content:"";
+    position:absolute;
+    inset:-35%;
+    background:
+      repeating-radial-gradient(circle,
+        #fff 0px,
+        #fff 7px,
+        #000 7px,
+        #000 22px);
+    transform-origin: 50% 50%;
+    animation:
+      slowSpin 42000ms linear infinite,
+      slowBreath 8200ms ease-in-out infinite;
+    filter: contrast(1.22);
+    mask-image: radial-gradient(circle,#000 0%,#000 72%,transparent 90%);
+    -webkit-mask-image: radial-gradient(circle,#000 0%,#000 72%,transparent 90%);
+  }
 
-.portal::before{
-  content:"";
-  position:absolute;
-  inset:-40%;
-  background:
-  repeating-radial-gradient(circle,#fff 0,#fff 6px,#000 6px,#000 20px);
-  animation:spin 40s linear infinite;
-}
+  .portal::after{
+    content:"";
+    position:absolute;
+    inset:0;
+    background:radial-gradient(circle,
+      rgba(0,0,0,0) 0%,
+      rgba(0,0,0,.28) 58%,
+      #000 100%);
+  }
 
-@keyframes spin{
-  from{transform:rotate(0deg) scale(.95);}
-  to{transform:rotate(360deg) scale(1.1);}
-}
+  @keyframes slowSpin{
+    from{ transform: rotate(0deg) scale(0.95); }
+    to  { transform: rotate(360deg) scale(1.06); }
+  }
 
-@keyframes fall{
-  to{transform:scale(2);filter:blur(1px);}
-}
+  @keyframes slowBreath{
+    0%   { filter: contrast(1.12) brightness(1.00); }
+    50%  { filter: contrast(1.28) brightness(1.04); }
+    100% { filter: contrast(1.12) brightness(1.00); }
+  }
 
-/* Coward Page */
+  @keyframes fall{
+    0%   { transform: scale(1.0); filter: blur(0px); }
+    30%  { transform: scale(1.05); filter: blur(0.20px); }
+    65%  { transform: scale(1.18); filter: blur(0.55px); }
+    100% { transform: scale(2.00); filter: blur(1.25px); }
+  }
 
-.cowardPage{
-  position:absolute;
-  inset:0;
-  background:#000;
-  display:none;
-  z-index:90;
-  place-items:center;
-}
+  /* ===== Coward “page” (Stop 1-2) — confession chat ===== */
+  .cowardPage{
+    position:absolute;
+    inset:0;
+    background:#000;
+    z-index:100;
+    display:none;
+    overflow:hidden;
+    align-items:center;
+    justify-content:center;
+    pointer-events:auto;
+  }
+  body.coward .cowardPage{ display:flex; }
 
-body.coward .cowardPage{display:grid;}
+  .cowardPage::before{
+    content:"";
+    position:absolute;
+    inset:-18%;
+    opacity:.14;
+    background:
+      repeating-radial-gradient(circle,
+        rgba(255,255,255,1) 0px,
+        rgba(255,255,255,1) 2px,
+        rgba(0,0,0,1) 2px,
+        rgba(0,0,0,1) 20px);
+    transform: rotate(-8deg) scale(1.2);
+    filter: blur(0.35px) contrast(1.05);
+  }
 
-.cowardInner{
-  width:min(90vw,760px);
-  background:rgba(0,0,0,.65);
-  border-radius:18px;
-  padding:22px;
-}
+  .cowardInner{
+    position:relative;
+    text-align:left;
+    padding:22px 20px;
+    border-radius:18px;
+    background:rgba(0,0,0,.62);
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,.10);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    max-width:min(90vw,760px);
+    width:min(90vw,760px);
+  }
 
-.cowardTitle{
-  font-size:18px;
-  letter-spacing:.18em;
-  text-transform:uppercase;
-}
+  .cowardTitle{
+    margin:0 0 6px;
+    font-size:18px;
+    letter-spacing:.18em;
+    text-transform:uppercase;
+  }
 
-.cowardSub{
-  font-size:11px;
-  opacity:.7;
-  letter-spacing:.1em;
-  margin-bottom:14px;
-}
+  .cowardSub{
+    margin:0 0 14px;
+    opacity:.70;
+    letter-spacing:.10em;
+    text-transform:uppercase;
+    font-size:11px;
+    line-height:1.35;
+  }
 
-.chat{
-  height:300px;
-  overflow:auto;
-  background:rgba(255,255,255,.04);
-  border-radius:14px;
-  padding:12px;
-  margin-bottom:12px;
-}
+  .chat{
+    height:min(42vh,320px);
+    overflow:auto;
+    padding:12px;
+    border-radius:14px;
+    background:rgba(255,255,255,.04);
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,.06);
+    margin-bottom:12px;
+  }
 
-.bubble{
-  max-width:80%;
-  padding:10px 12px;
-  border-radius:14px;
-  margin:8px 0;
-  font-size:12px;
-}
+  .bubble{
+    max-width: 82%;
+    padding:10px 12px;
+    border-radius:14px;
+    margin:8px 0;
+    font-size:12px;
+    line-height:1.45;
+    letter-spacing:.02em;
+    white-space:pre-wrap;
+    word-wrap:break-word;
+  }
 
-.user{
-  margin-left:auto;
-  background:rgba(255,255,255,.1);
-}
+  .bubble.user{
+    margin-left:auto;
+    background:rgba(255,255,255,.10);
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,.08);
+  }
 
-.system{
-  background:rgba(0,0,0,.4);
-}
+  .bubble.system{
+    margin-right:auto;
+    background:rgba(0,0,0,.35);
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,.08);
+    opacity:.92;
+  }
 
-textarea{
-  width:100%;
-  min-height:50px;
-  background:rgba(255,255,255,.05);
-  color:#fff;
-  border:0;
-  border-radius:12px;
-  padding:10px;
-}
+  .label{
+    font-size:11px;
+    letter-spacing:.16em;
+    text-transform:uppercase;
+    opacity:.70;
+    margin:0 0 6px;
+  }
 
-.readyGate{
-  display:none;
-  margin-top:10px;
-  padding:12px;
-  background:rgba(255,255,255,.04);
-  border-radius:14px;
-}
+  .inputRow{
+    display:flex;
+    gap:10px;
+    align-items:flex-end;
+  }
 
-.readyGate.show{display:block;}
+  textarea{
+    flex:1;
+    resize:none;
+    min-height:52px;
+    max-height:140px;
+    padding:12px 12px;
+    border-radius:14px;
+    border:0;
+    outline:none;
+    background:rgba(255,255,255,.06);
+    color:#fff;
+    font-size:12px;
+    line-height:1.45;
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,.10);
+  }
 
-.readyPrompt{
-  font-size:11px;
-  letter-spacing:.16em;
-  opacity:.7;
-  margin-bottom:8px;
-}
+  .enterBtn{
+    padding:12px 14px;
+    border-radius:14px;
+    background:rgba(255,255,255,.10);
+    min-width:88px;
+    height:52px;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+  }
 
-.readyRow{
-  display:flex;
-  gap:10px;
-}
+  /* Ready ritual (type to return) */
+  .readyGate{
+    display:none;
+    margin-top:10px;
+    padding:12px;
+    border-radius:14px;
+    background:rgba(255,255,255,.04);
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,.06);
+  }
+  .readyGate.show{ display:block; }
 
-.readyRow input{
-  flex:1;
-  background:rgba(255,255,255,.05);
-  color:#fff;
-  border:0;
-  border-radius:12px;
-  padding:10px;
-  text-transform:uppercase;
-}
+  .readyPrompt{
+    margin:0 0 10px;
+    font-size:11px;
+    letter-spacing:.16em;
+    text-transform:uppercase;
+    opacity:.75;
+    line-height:1.35;
+  }
 
-/* Locked */
+  .readyRow{
+    display:flex;
+    gap:10px;
+    align-items:flex-end;
+  }
 
-.lockedPage{
-  position:absolute;
-  inset:0;
-  background:#000;
-  display:none;
-  place-items:center;
-  z-index:100;
-}
+  input[type="text"]{
+    flex:1;
+    height:44px;
+    padding:0 12px;
+    border-radius:12px;
+    border:0;
+    outline:none;
+    background:rgba(255,255,255,.06);
+    color:#fff;
+    font-size:12px;
+    letter-spacing:.10em;
+    text-transform:uppercase;
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,.10);
+  }
 
-body.locked .lockedPage{display:grid;}
+  .ghostBtn{
+    background:rgba(255,255,255,.08);
+  }
 
-.lockedInner{
-  background:rgba(0,0,0,.6);
-  padding:28px;
-  border-radius:18px;
-  text-align:center;
-}
+  .cowardBtns{
+    display:flex;
+    gap:10px;
+    margin-top:12px;
+    justify-content:flex-end;
+  }
 
-.lockedInner h2{
-  font-size:64px;
-  letter-spacing:.22em;
-}
+  /* ===== LOCKED “fail page” after 3 Stops ===== */
+  .lockedPage{
+    position:absolute;
+    inset:0;
+    background:#000;
+    z-index:120;
+    display:none;
+    overflow:hidden;
+    align-items:center;
+    justify-content:center;
+    pointer-events:auto;
+  }
+  body.locked .lockedPage{ display:flex; }
+
+  .lockedPage::before{
+    content:"";
+    position:absolute;
+    inset:-20%;
+    opacity:.10;
+    background:
+      repeating-radial-gradient(circle,
+        rgba(255,255,255,1) 0px,
+        rgba(255,255,255,1) 2px,
+        rgba(0,0,0,1) 2px,
+        rgba(0,0,0,1) 18px);
+    transform: rotate(9deg) scale(1.25);
+    filter: blur(0.35px) contrast(1.1);
+  }
+
+  .lockedInner{
+    position:relative;
+    text-align:center;
+    padding:30px 22px;
+    border-radius:18px;
+    background:rgba(0,0,0,.62);
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,.10);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    max-width:min(86vw,760px);
+  }
+
+  .lockedInner h2{
+    margin:0 0 12px;
+    font-size: clamp(44px, 7vw, 96px);
+    letter-spacing:.22em;
+    text-transform:uppercase;
+    line-height:1;
+  }
+
+  .lockedInner .small{
+    margin:0 0 18px;
+    opacity:.62;
+    letter-spacing:.12em;
+    text-transform:uppercase;
+    font-size:12px;
+    line-height:1.35;
+  }
+
+  .lockedInner a{
+    display:inline-block;
+    border-radius:999px;
+    padding:12px 16px;
+    background:rgba(255,255,255,.12);
+    color:#fff;
+    font-size:11px;
+    letter-spacing:.15em;
+    text-transform:uppercase;
+    text-decoration:none;
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,.10);
+  }
+  .lockedInner a:hover{ background:rgba(255,255,255,.18); }
+
+  @media(max-width:520px){
+    .stage{ aspect-ratio:9/16; }
+    body.mirroring .center{ transform:translateY(-80vh); }
+    .instruction{ font-size:10px; letter-spacing:.14em; padding:9px 10px; }
+    .chat{ height:min(46vh,360px); }
+    .enterBtn{ min-width:78px; }
+  }
 </style>
 </head>
 
 <body>
 <div class="wrap">
-<div class="stage">
+  <div class="stage">
+    <video id="vid" autoplay muted playsinline></video>
 
-<video id="vid" autoplay muted playsinline></video>
-<div class="portal" id="portal"></div>
+    <div class="portal" id="portal"></div>
 
-<!-- Coward -->
-<div class="cowardPage">
-<div class="cowardInner">
+    <!-- Coward page -> confession chat (STOP #1 and #2 only) -->
+    <div class="cowardPage" id="cowardPage">
+      <div class="cowardInner">
+        <div class="cowardTitle">What are you avoiding</div>
+        <div class="cowardSub">Is the mirror hard to look at?</div>
 
-<div class="cowardTitle">What are you avoiding</div>
-<div class="cowardSub">Is the mirror hard to look at?</div>
+        <div class="chat" id="chat"></div>
 
-<div class="chat" id="chat"></div>
+        <div class="label">Answer.</div>
+        <div class="inputRow">
+          <textarea id="confession" placeholder="type here... (Enter to send, Shift+Enter for a new line)"></textarea>
+          <button class="enterBtn" id="enterBtn">Enter</button>
+        </div>
 
-<textarea id="confession" placeholder="Type. Enter to send."></textarea>
-<button id="enterBtn">Enter</button>
+        <!-- Ritual return gate (replaces Yes/No buttons) -->
+        <div class="readyGate" id="readyGate">
+          <div class="readyPrompt" id="readyPrompt">Are you ready to go back?<br>Type RETURN.</div>
+          <div class="readyRow">
+            <input id="returnInput" type="text" inputmode="text" autocomplete="off" spellcheck="false" placeholder="RETURN">
+            <button class="enterBtn" id="returnBtn">Enter</button>
+            <button class="ghostBtn" id="stayBtn">Stay</button>
+          </div>
+        </div>
 
-<div class="readyGate" id="readyGate">
-<div class="readyPrompt">Are you ready to go back?<br>Type RETURN.</div>
-<div class="readyRow">
-<input id="returnInput" placeholder="RETURN">
-<button id="returnBtn">Enter</button>
-<button id="stayBtn">Stay</button>
-</div>
-</div>
+        <div class="cowardBtns">
+          <button class="ghostBtn" id="backBtn">Go back</button>
+        </div>
+      </div>
+    </div>
 
-</div>
-</div>
+    <!-- Locked after 3 Stops -->
+    <div class="lockedPage" id="lockedPage">
+      <div class="lockedInner">
+        <h2>LOCKED</h2>
+        <div class="small">You chose the exit three times.<br>The gate will not open.</div>
+        <a href="#return" id="returnLink">Return and try again</a>
+      </div>
+    </div>
 
-<!-- Locked -->
-<div class="lockedPage">
-<div class="lockedInner">
-<h2>LOCKED</h2>
-<div>You chose the exit three times.</div>
-<a href="#return">Return</a>
-</div>
-</div>
+    <!-- Main HUD -->
+    <div class="hud">
+      <div class="top">
+        <div class="instruction">HOLD STILL, BE PRESENT</div>
+        <div class="topRight">
+          <div class="clock" id="clock">—</div>
+          <button class="stopTop" id="stopTop" disabled>Stop</button>
+        </div>
+      </div>
 
-<!-- HUD -->
-<div class="hud">
+      <div class="center">
+        <h1>Spiral in.</h1>
+        <p id="sub">The gate opens in reflection.</p>
+        <div class="row">
+          <button id="start">Enable Mirror</button>
+        </div>
+        <div class="hint" id="hint">Hold still.</div>
+        <div class="fail" id="fail"></div>
+      </div>
 
-<div class="top">
-<div class="instruction">HOLD STILL, BE PRESENT</div>
-<div class="topRight">
-<div class="clock" id="clock"></div>
-<button class="stopTop" id="stopTop" disabled>Stop</button>
-</div>
-</div>
+      <div class="bottom">
+        <div id="status">Mirror idle</div>
+        <div></div>
+      </div>
+    </div>
 
-<div class="center">
-<h1>Spiral in.</h1>
-<p id="sub">The gate opens in reflection.</p>
-<button id="start">Enable Mirror</button>
-<div class="hint" id="hint">Hold still.</div>
-</div>
-
-<div class="bottom">
-<div id="status">Mirror idle</div>
-</div>
-
-</div>
-</div>
+  </div>
 </div>
 
 <script>
-const SECRET_URL="https://www.photonisdead.com/";
+  const SECRET_URL = "https://www.photonisdead.com/";
 
-const vid=startBtn=stopTop=null;
-const video=document.getElementById("vid");
-const start=document.getElementById("start");
-const stop=document.getElementById("stopTop");
-const portal=document.getElementById("portal");
-const chat=document.getElementById("chat");
-const input=document.getElementById("confession");
-const enter=document.getElementById("enterBtn");
+  const vid = document.getElementById("vid");
+  const startBtn = document.getElementById("start");
+  const stopTop = document.getElementById("stopTop");
 
-const readyGate=document.getElementById("readyGate");
-const returnInput=document.getElementById("returnInput");
-const returnBtn=document.getElementById("returnBtn");
-const stayBtn=document.getElementById("stayBtn");
+  const hint = document.getElementById("hint");
+  const sub = document.getElementById("sub");
+  const statusEl = document.getElementById("status");
+  const portal = document.getElementById("portal");
+  const clock = document.getElementById("clock");
 
-let stream=null,raf=null;
-let still=0,last=null,triggered=false;
-let turns=0,ready=false;
+  // Coward chat elements
+  const chatEl = document.getElementById("chat");
+  const confessionEl = document.getElementById("confession");
+  const enterBtn = document.getElementById("enterBtn");
+  const backBtn = document.getElementById("backBtn");
 
-const NEED=7000;
+  // Ritual return elements
+  const readyGate = document.getElementById("readyGate");
+  const readyPrompt = document.getElementById("readyPrompt");
+  const returnInput = document.getElementById("returnInput");
+  const returnBtn = document.getElementById("returnBtn");
+  const stayBtn = document.getElementById("stayBtn");
 
-let stopCount=Number(localStorage.getItem("stop")||0);
-let locked=localStorage.getItem("locked")==="1";
-
-function addBubble(t,c){
-  const d=document.createElement("div");
-  d.className="bubble "+c;
-  d.textContent=t;
-  chat.appendChild(d);
-  chat.scrollTop=chat.scrollHeight;
-}
-
-function seed(){
-  if(chat.children.length) return;
-  addBubble("You looked away.","system");
-  addBubble("What are you avoiding?","system");
-}
-
-function analyze(t){
-  t=t.toLowerCase();
-
-  if(t.match(/fear|anxiety|panic|stress/))
-    return "Anxiety is movement without travel.";
-
-  if(t.match(/love|miss|relationship/))
-    return "You keep circling them.";
-
-  if(t.match(/money|job|rent|work/))
-    return "Survival turns thought into numbers.";
-
-  if(t.match(/art|create|music|make/))
-    return "Creation is a confession.";
-
-  return "Say it again. Sharper.";
-}
-
-function reply(text){
-  const r=analyze(text);
-  return r+"\nWhat remains unsaid?";
-}
-
-function askReady(){
-  ready=true;
-  addBubble("Are you ready to go back?","system");
-  readyGate.classList.add("show");
-  returnInput.focus();
-}
-
-function hideReady(){
-  ready=false;
-  readyGate.classList.remove("show");
-}
-
-function send(){
-  const t=input.value.trim();
-  if(!t) return;
-
-  if(ready){
-    hideReady();
-    addBubble("Then stay.","system");
+  // ===== Versioned storage reset (prevents old localStorage causing weird behavior) =====
+  const STORAGE_VERSION = "spiral_gate_v6";
+  const VERSION_KEY = "spiral_storage_version";
+  if (localStorage.getItem(VERSION_KEY) !== STORAGE_VERSION){
+    localStorage.setItem(VERSION_KEY, STORAGE_VERSION);
+    localStorage.setItem("spiral_stop_count", "0");
+    localStorage.removeItem("spiral_locked");
+    localStorage.removeItem("spiral_coward_chat_state");
   }
 
-  addBubble(t,"user");
-  input.value="";
+  // ===== Fail whisper (stillness fails, camera denied, etc.) =====
+  const failEl = document.getElementById("fail");
+  const FAIL_KEY = "spiral_fail_count";
+  let failCount = Number(localStorage.getItem(FAIL_KEY) || 0);
+  if (!Number.isFinite(failCount)) failCount = 0;
 
-  setTimeout(()=>{
-    addBubble(reply(t),"system");
-    turns++;
+  const failMessages = [
+    "You weren’t ready.",
+    "Return when quiet.",
+    "The spiral remembers."
+  ];
 
-    if(turns%2===0){
-      setTimeout(askReady,400);
+  function showFail(){
+    if (failCount < 3) {
+      failEl.textContent = "";
+      failEl.classList.remove("show");
+      return;
     }
-  },400);
-}
-
-function attemptReturn(){
-  if(returnInput.value.toUpperCase().trim()==="RETURN"){
-    addBubble("Then return.","system");
-    setTimeout(()=>{
-      document.body.classList.remove("coward");
-    },600);
-  }else{
-    addBubble("Not yet.","system");
-    returnInput.value="";
+    const idx = Math.min(failMessages.length - 1, failCount - 3);
+    failEl.textContent = failMessages[idx];
+    failEl.classList.add("show");
   }
-}
 
-function goCoward(){
-  stopCount++;
-  localStorage.setItem("stop",stopCount);
+  function registerFail(){
+    failCount += 1;
+    localStorage.setItem(FAIL_KEY, String(failCount));
+    showFail();
+  }
 
-  if(stopCount>=3){
-    locked=true;
-    localStorage.setItem("locked","1");
+  function clearFail(){
+    failCount = 0;
+    localStorage.removeItem(FAIL_KEY);
+    failEl.textContent = "";
+    failEl.classList.remove("show");
+  }
+
+  // ===== STOP lockout after 3 stops =====
+  const STOP_KEY = "spiral_stop_count";
+  const LOCK_KEY = "spiral_locked";
+  let stopCount = Number(localStorage.getItem(STOP_KEY) || 0);
+  if (!Number.isFinite(stopCount)) stopCount = 0;
+  let locked = (localStorage.getItem(LOCK_KEY) === "1");
+
+  function applyLockedUI(){
+    if (locked){
+      document.body.classList.add("locked");
+      startBtn.disabled = true;
+      stopTop.disabled = true;
+      statusEl.textContent = "Locked";
+      hint.textContent = "Return and try again.";
+      sub.textContent = "The gate will not open.";
+    } else {
+      document.body.classList.remove("locked");
+    }
+  }
+
+  function lockNow(){
+    locked = true;
+    localStorage.setItem(LOCK_KEY, "1");
     document.body.classList.add("locked");
-    return;
+    stopCam();
+    applyLockedUI();
   }
 
-  document.body.classList.add("coward");
-  seed();
-  input.focus();
-}
-
-async function startCam(){
-  if(locked) return;
-
-  const s=await navigator.mediaDevices.getUserMedia({video:true});
-  stream=s;
-  video.srcObject=s;
-  await video.play();
-
-  start.disabled=true;
-  stop.disabled=false;
-
-  document.body.classList.add("mirroring");
-  last=performance.now();
-  loop();
-}
-
-function stopCam(){
-  if(stream){
-    stream.getTracks().forEach(t=>t.stop());
-  }
-  stream=null;
-  cancelAnimationFrame(raf);
-  document.body.classList.remove("mirroring");
-}
-
-function motion(){
-  if(!video.videoWidth) return 999;
-
-  const c=document.createElement("canvas");
-  c.width=80;c.height=45;
-  const ctx=c.getContext("2d");
-  ctx.drawImage(video,0,0,80,45);
-  const d=ctx.getImageData(0,0,80,45).data;
-
-  if(!last){
-    last=d;
-    return 999;
+  function unlockNow(){
+    locked = false;
+    stopCount = 0;
+    localStorage.setItem(STOP_KEY, "0");
+    localStorage.removeItem(LOCK_KEY);
+    document.body.classList.remove("locked");
+    document.body.classList.remove("coward");
+    location.hash = "";
+    resetGate();
+    applyLockedUI();
+    statusEl.textContent = "Mirror idle";
+    hint.textContent = "Hold still.";
+    sub.textContent = "The gate opens in reflection.";
+    showFail();
   }
 
-  let s=0;
-  for(let i=0;i<d.length;i+=12){
-    s+=Math.abs(d[i]-last[i]);
+  function registerStop(){
+    stopCount += 1;
+    localStorage.setItem(STOP_KEY, String(stopCount));
+    if (stopCount >= 3){
+      lockNow();
+      return true;
+    }
+    return false;
   }
 
-  last=d;
-  return s/300;
-}
+  let stream = null;
+  let raf = null;
 
-let lastT=performance.now();
+  // ===== Motion detection =====
+  const mCan = document.createElement("canvas");
+  mCan.width = 96;
+  mCan.height = 54;
+  const mCtx = mCan.getContext("2d", { willReadFrequently: true });
 
-function loop(){
-  if(!stream||locked) return;
+  let last = null;
+  let stillMs = 0;
+  let triggered = false;
 
-  const n=performance.now();
-  const dt=n-lastT;
-  lastT=n;
+  const NEED = 7000;
 
-  const m=motion();
+  const STILL_THRESH = 6.0;
+  const MOVE_THRESH  = 12.0;
+  const FINISH_QUIET  = 6.0;
 
-  if(m<6) still+=dt;
-  else still=0;
+  const PORTAL_DELAY = 240;
 
-  if(still>NEED&&!triggered){
-    triggered=true;
-    portal.classList.add("on");
-    setTimeout(()=>{
-      window.location.href=SECRET_URL;
-    },5200);
+  const AUDIO_FADE_MS = 1400;
+  const PORTAL_TOTAL_MS = 5600;
+  const REDIRECT_AFTER = Math.max(900, PORTAL_TOTAL_MS - 250);
+
+  // ===== Ambient sound (procedural) =====
+  let audioCtx = null, master = null;
+  let droneOsc = null, shimmerOsc = null, lfo = null, lfoGain = null;
+
+  function startAmbient(){
+    if (audioCtx) return;
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+    master = audioCtx.createGain();
+    master.gain.value = 0.0;
+    master.connect(audioCtx.destination);
+
+    droneOsc = audioCtx.createOscillator();
+    droneOsc.type = "sine";
+    droneOsc.frequency.value = 46;
+
+    const droneGain = audioCtx.createGain();
+    droneGain.gain.value = 0.28;
+
+    shimmerOsc = audioCtx.createOscillator();
+    shimmerOsc.type = "triangle";
+    shimmerOsc.frequency.value = 176;
+
+    const shimmerGain = audioCtx.createGain();
+    shimmerGain.gain.value = 0.045;
+
+    lfo = audioCtx.createOscillator();
+    lfo.type = "sine";
+    lfo.frequency.value = 0.06;
+
+    lfoGain = audioCtx.createGain();
+    lfoGain.gain.value = 9.5;
+
+    lfo.connect(lfoGain);
+    lfoGain.connect(droneOsc.frequency);
+
+    droneOsc.connect(droneGain);
+    shimmerOsc.connect(shimmerGain);
+
+    droneGain.connect(master);
+    shimmerGain.connect(master);
+
+    droneOsc.start();
+    shimmerOsc.start();
+    lfo.start();
+
+    master.gain.setValueAtTime(0.0, audioCtx.currentTime);
+    master.gain.linearRampToValueAtTime(0.22, audioCtx.currentTime + 1.2);
   }
 
-  raf=requestAnimationFrame(loop);
-}
+  function fadeOutAmbient(ms){
+    if (!audioCtx || !master) return;
+    const t = audioCtx.currentTime;
+    const dur = Math.max(0.05, ms / 1000);
 
-start.onclick=startCam;
-stop.onclick=goCoward;
+    master.gain.cancelScheduledValues(t);
+    master.gain.setValueAtTime(master.gain.value, t);
+    master.gain.linearRampToValueAtTime(0.0001, t + dur);
 
-enter.onclick=send;
-
-input.addEventListener("keydown",e=>{
-  if(e.key==="Enter"&&!e.shiftKey){
-    e.preventDefault();
-    send();
+    try{
+      shimmerOsc.frequency.cancelScheduledValues(t);
+      shimmerOsc.frequency.setTargetAtTime(140, t, 1.0);
+    }catch(_){}
   }
-});
 
-returnBtn.onclick=attemptReturn;
-stayBtn.onclick=()=>{
-  hideReady();
-  addBubble("Then stay.","system");
-};
+  function stopAmbient(){
+    if (!audioCtx) return;
+    const t = audioCtx.currentTime;
+    master.gain.cancelScheduledValues(t);
+    master.gain.setValueAtTime(master.gain.value, t);
+    master.gain.linearRampToValueAtTime(0.0, t + 0.35);
 
-returnInput.addEventListener("keydown",e=>{
-  if(e.key==="Enter"){
-    e.preventDefault();
-    attemptReturn();
+    setTimeout(() => {
+      try{ droneOsc?.stop(); shimmerOsc?.stop(); lfo?.stop(); }catch(_){}
+      audioCtx.close().catch(()=>{});
+      audioCtx = null; master = null;
+      droneOsc = null; shimmerOsc = null; lfo = null; lfoGain = null;
+    }, 450);
   }
-});
 
-if(locked) document.body.classList.add("locked");
+  function setClock(){
+    const d=new Date();
+    clock.textContent =
+      d.getHours().toString().padStart(2,"0") + ":" +
+      d.getMinutes().toString().padStart(2,"0") + ":" +
+      d.getSeconds().toString().padStart(2,"0");
+  }
+  setClock();
+  setInterval(setClock, 350);
 
-seed();
+  function resetGate(){
+    portal.classList.remove("on");
+    triggered = false;
+    stillMs = 0;
+    last = null;
+  }
+
+  function beginPortal(){
+    if (triggered || locked) return;
+    triggered = true;
+
+    clearFail();
+    stopCount = 0;
+    localStorage.setItem(STOP_KEY, "0");
+
+    hint.textContent = "Falling inward.";
+    sub.textContent = "Recognized.";
+
+    if (audioCtx && master){
+      const t = audioCtx.currentTime;
+      master.gain.cancelScheduledValues(t);
+      master.gain.setValueAtTime(master.gain.value, t);
+      master.gain.linearRampToValueAtTime(0.30, t + 0.9);
+    }
+
+    setTimeout(() => {
+      portal.classList.add("on");
+
+      const fadeAt = Math.max(0, REDIRECT_AFTER - AUDIO_FADE_MS);
+      setTimeout(() => fadeOutAmbient(AUDIO_FADE_MS), fadeAt);
+
+      setTimeout(() => {
+        window.location.href = SECRET_URL;
+      }, REDIRECT_AFTER);
+
+    }, PORTAL_DELAY);
+  }
+
+  async function startCam(){
+    if (locked){
+      applyLockedUI();
+      return;
+    }
+
+    if (location.hash === "#coward") location.hash = "";
+    resetGate();
+    document.body.classList.remove("coward");
+    document.body.classList.remove("mirroring");
+
+    showFail();
+
+    try{
+      startAmbient();
+
+      stream = await navigator.mediaDevices.getUserMedia({ video:true, audio:false });
+      vid.srcObject = stream;
+      await vid.play();
+
+      startBtn.disabled = true;
+      stopTop.disabled = false;
+
+      statusEl.textContent = "Mirror active";
+      hint.textContent = "Hold still. Be present.";
+      sub.textContent = "The gate opens in reflection.";
+
+      document.body.classList.add("mirroring");
+
+      lastT = performance.now();
+      loop();
+    }catch(e){
+      statusEl.textContent = "Denied";
+      hint.textContent = "Reflection required.";
+      startBtn.disabled = false;
+      stopTop.disabled = true;
+
+      registerFail();
+      stopAmbient();
+    }
+  }
+
+  function stopCam(){
+    if (raf) cancelAnimationFrame(raf);
+    raf = null;
+
+    if (stream){
+      stream.getTracks().forEach(t => t.stop());
+    }
+    stream = null;
+
+    startBtn.disabled = locked ? true : false;
+    stopTop.disabled = true;
+
+    statusEl.textContent = locked ? "Locked" : "Mirror stopped";
+    hint.textContent = locked ? "Return and try again." : "Look inward.";
+
+    document.body.classList.remove("mirroring");
+    resetGate();
+    stopAmbient();
+  }
+
+  /* ============================
+     Coward Chat (scripted pseudo-AI, neutral/cryptic)
+     - 10 theme modules + fallback
+     - Ask “ready” every 2 user messages
+     - Return requires typing RETURN
+  ============================ */
+  const CHAT_KEY = "spiral_coward_chat_state";
+  let chatState = JSON.parse(localStorage.getItem(CHAT_KEY) || "null") || {
+    turns: 0,
+    readyAsked: false
+  };
+
+  function saveChatState(){ localStorage.setItem(CHAT_KEY, JSON.stringify(chatState)); }
+  function scrollChat(){ chatEl.scrollTop = chatEl.scrollHeight; }
+
+  function addBubble(text, who){
+    const div = document.createElement("div");
+    div.className = "bubble " + who;
+    div.textContent = text;
+    chatEl.appendChild(div);
+    scrollChat();
+  }
+
+  function seedChatIfEmpty(){
+    if (chatEl.children.length) return;
+    addBubble("You looked away.", "system");
+    addBubble("What are you avoiding?", "system");
+  }
+
+  function cleanWords(text){
+    return (text || "")
+      .toLowerCase()
+      .replace(/[^a-z0-9\s'’-]/g, " ")
+      .split(/\s+/)
+      .filter(Boolean);
+  }
+
+  function pickEcho(text){
+    const words = cleanWords(text).filter(w => w.length >= 4);
+    if (!words.length) return "";
+    const w = words[Math.max(0, words.length - 2)];
+    return w ? `"${w}"` : "";
+  }
+
+  const THEMES = [
+    { keys:["anxiety","panic","stress","worried","worry","overthink","overthinking","fear","scared","terrified","nervous"],
+      lines:[
+        "Anxiety is movement without travel.\nName the place you keep running to.",
+        "Your mind calls it “stress.”\nYour body calls it “alarm.”"
+      ]},
+    { keys:["avoid","avoiding","procrastinate","procrastination","later","tomorrow","stall","stuck","paralyzed","freeze","postpone"],
+      lines:[
+        "Avoidance is a ritual.\nWhat do you do instead of beginning?",
+        "If you started today, what would collapse?"
+      ]},
+    { keys:["love","relationship","breakup","heart","girlfriend","boyfriend","husband","wife","her","him","they","miss","attachment"],
+      lines:[
+        "You keep circling them.\nThe spiral keeps circling you.",
+        "What are you hoping they prove about you?"
+      ]},
+    { keys:["shame","guilt","regret","embarrassed","humiliated","fault","blame","sorry","mistake"],
+      lines:[
+        "Shame survives on the unsaid.\nSay the simplest version.",
+        "Guilt can be a compass—or a cage.\nWhich one did you build?"
+      ]},
+    { keys:["money","rent","bills","debt","broke","poor","job","career","work","paycheck","pay","income"],
+      lines:[
+        "Survival turns every thought into a number.\nWhat does “enough” look like in silence?",
+        "You can’t budget your way out of emptiness.\nBut you can name what it costs you."
+      ]},
+    { keys:["death","dying","mortality","grief","funeral","cemetery","lost","loss","gone","missed","sick"],
+      lines:[
+        "You don’t fear death.\nYou fear being unfinished.",
+        "What are you trying to outlive?"
+      ]},
+    { keys:["identity","self","worth","confidence","insecure","imposter","impostor","meaning","purpose"],
+      lines:[
+        "You keep asking who you are.\nTry: what do you refuse to be?",
+        "If nobody watched, what would remain true?"
+      ]},
+    { keys:["angry","anger","mad","rage","furious","hate","resent","resentment","betrayed"],
+      lines:[
+        "Anger is often grief wearing armor.\nWhat is it protecting?",
+        "Who benefits from your silence?"
+      ]},
+    { keys:["tired","exhausted","sleep","insomnia","pain","sick","body","ache","hurt","burnout","burned","burnt"],
+      lines:[
+        "Your body is the part of you that can’t lie.\nWhere is the weight?",
+        "Rest is not a reward.\nIt’s a baseline you were denied."
+      ]},
+    { keys:["art","create","creating","music","song","paint","draw","writing","write","project","nft","drop","make"],
+      lines:[
+        "Creation is a confession you can pretend is aesthetic.\nWhat are you smuggling inside it?",
+        "You want the work to speak.\nWhat are you afraid it will say?"
+      ]}
+  ];
+
+  const FALLBACK = [
+    "Say it again, shorter.\nMake it sharp.",
+    "Don’t explain.\nPoint to the center.",
+    "What is the sentence you keep refusing to write?"
+  ];
+
+  function bestTheme(text){
+    const words = cleanWords(text);
+    if (!words.length) return null;
+
+    let best = null;
+    let bestScore = 0;
+    for (const t of THEMES){
+      let score = 0;
+      for (const k of t.keys){
+        if (words.includes(k)) score++;
+      }
+      if (score > bestScore){
+        bestScore = score;
+        best = t;
+      }
+    }
+    return bestScore > 0 ? best : null;
+  }
+
+  function pickLine(arr){
+    return arr[Math.floor(Math.random() * arr.length)];
+  }
+
+  function replyFor(text){
+    const echo = pickEcho(text);
+    const theme = bestTheme(text);
+
+    let line = theme ? pickLine(theme.lines) : pickLine(FALLBACK);
+
+    const shouldEcho = echo && Math.random() < 0.55;
+    if (shouldEcho){
+      return `You said ${echo}.\n${line}`;
+    }
+    return line;
+  }
+
+  function showReadyGate(){
+    chatState.readyAsked = true;
+    saveChatState();
+
+    addBubble("Are you ready to go back?", "system");
+    readyGate.classList.add("show");
+    returnInput.value = "";
+    setTimeout(() => returnInput.focus(), 120);
+    scrollChat();
+  }
+
+  function hideReadyGate(){
+    chatState.readyAsked = false;
+    saveChatState();
+    readyGate.classList.remove("show");
+  }
+
+  function normalizeReturn(s){
+    return (s || "").toUpperCase().replace(/[^A-Z]/g, "");
+  }
+
+  function attemptReturn(){
+    const val = normalizeReturn(returnInput.value);
+    if (val === "RETURN"){
+      addBubble("Then return.", "system");
+      hideReadyGate();
+      setTimeout(() => backFromCoward(), 650);
+      return;
+    }
+
+    // subtle rejection (neutral/cryptic)
+    addBubble("Not yet.\nType RETURN.", "system");
+    returnInput.value = "";
+    returnInput.focus();
+  }
+
+  function enterCoward(){
+    document.body.classList.add("coward");
+    seedChatIfEmpty();
+    confessionEl.focus();
+
+    if (chatState.readyAsked){
+      readyGate.classList.add("show");
+      setTimeout(() => returnInput.focus(), 120);
+    } else {
+      readyGate.classList.remove("show");
+    }
+  }
+
+  function leaveCoward(){
+    document.body.classList.remove("coward");
+    location.hash = "";
+  }
+
+  function handleSend(){
+    if (locked) return;
+
+    const text = confessionEl.value.trim();
+    if (!text) return;
+
+    // if the return gate is open, typing counts as choosing to stay
+    if (chatState.readyAsked){
+      hideReadyGate();
+      addBubble("Then stay.", "system");
+    }
+
+    addBubble(text, "user");
+    confessionEl.value = "";
+
+    const reply = replyFor(text);
+
+    setTimeout(() => {
+      addBubble(reply, "system");
+
+      chatState.turns += 1;
+      saveChatState();
+
+      if (chatState.turns % 2 === 0){
+        setTimeout(showReadyGate, 360);
+      }
+    }, 420);
+  }
+
+  /* ============================
+     Stop behavior and routing
+  ============================ */
+  function goCoward(){
+    const nowLocked = registerStop();
+    stopCam();
+
+    if (nowLocked){
+      location.hash = "#locked";
+      document.body.classList.add("locked");
+      document.body.classList.remove("coward");
+      applyLockedUI();
+      return;
+    }
+
+    location.hash = "#coward";
+    enterCoward();
+  }
+
+  function backFromCoward(){
+    hideReadyGate();
+    leaveCoward();
+    statusEl.textContent = "Mirror idle";
+    hint.textContent = "Hold still.";
+    sub.textContent = "The gate opens in reflection.";
+    showFail();
+  }
+
+  function motionScore(){
+    if (!vid.videoWidth || !vid.videoHeight) return 999;
+
+    mCtx.drawImage(vid, 0, 0, mCan.width, mCan.height);
+    const f = mCtx.getImageData(0, 0, mCan.width, mCan.height);
+
+    if (!last){
+      last = f;
+      return 999;
+    }
+
+    const A = f.data;
+    const B = last.data;
+
+    let sum = 0;
+    let count = 0;
+
+    for (let i = 0; i < A.length; i += 12){
+      sum += Math.abs(A[i] - B[i]);
+      count++;
+    }
+
+    last = f;
+    return sum / Math.max(1, count);
+  }
+
+  let lastT = performance.now();
+  function loop(){
+    if (!stream || locked) return;
+
+    const now = performance.now();
+    const dt = now - lastT;
+    lastT = now;
+
+    const m = motionScore();
+
+    if (m > MOVE_THRESH){
+      stillMs = 0;
+    } else if (m < STILL_THRESH){
+      stillMs += dt;
+    } else {
+      stillMs = Math.max(0, stillMs - dt * 0.65);
+    }
+
+    if (!triggered){
+      if (stillMs < 2000) hint.textContent = "Hold still. Be present.";
+      else if (stillMs < 4500) hint.textContent = "Stay.";
+      else if (stillMs < NEED) hint.textContent = "…";
+      else {
+        if (m < FINISH_QUIET) beginPortal();
+        else stillMs = 0;
+      }
+    }
+
+    raf = requestAnimationFrame(loop);
+  }
+
+  function syncRoute(){
+    if (location.hash === "#coward"){
+      document.body.classList.add("coward");
+      document.body.classList.remove("locked");
+      enterCoward();
+    } else if (location.hash === "#locked"){
+      document.body.classList.add("locked");
+      document.body.classList.remove("coward");
+    } else if (location.hash === "#return"){
+      unlockNow();
+    } else {
+      document.body.classList.remove("coward");
+      document.body.classList.remove("locked");
+    }
+  }
+  window.addEventListener("hashchange", syncRoute);
+
+  // Controls
+  startBtn.onclick = startCam;
+  stopTop.onclick = goCoward;
+
+  backBtn.onclick = backFromCoward;
+  enterBtn.onclick = handleSend;
+
+  confessionEl.addEventListener("keydown", (e) => {
+    if (e.key === "Enter" && !e.shiftKey){
+      e.preventDefault();
+      handleSend();
+    }
+  });
+
+  // Return ritual events
+  returnBtn.onclick = attemptReturn;
+  stayBtn.onclick = () => {
+    hideReadyGate();
+    addBubble("Then stay with it.", "system");
+    confessionEl.focus();
+  };
+  returnInput.addEventListener("keydown", (e) => {
+    if (e.key === "Enter"){
+      e.preventDefault();
+      attemptReturn();
+    }
+  });
+
+  document.addEventListener("visibilitychange", () => {
+    if (document.hidden) stopCam();
+  });
+
+  // Load
+  if (locked){
+    location.hash = "#locked";
+  }
+  showFail();
+  applyLockedUI();
+  syncRoute();
+
+  seedChatIfEmpty();
 </script>
+
 </body>
 </html>
