@@ -576,14 +576,10 @@
   const readyYes = document.getElementById("readyYes");
   const readyNo = document.getElementById("readyNo");
 
-  // Locked elements
-  const returnLink = document.getElementById("returnLink");
-
-  // ===== Versioned storage reset (prevents “it locked on first stop” due to old localStorage) =====
-  const STORAGE_VERSION = "spiral_gate_v4";
+  // ===== Versioned storage reset (prevents old localStorage causing weird behavior) =====
+  const STORAGE_VERSION = "spiral_gate_v5";
   const VERSION_KEY = "spiral_storage_version";
   if (localStorage.getItem(VERSION_KEY) !== STORAGE_VERSION){
-    // Only reset the stop/lock + chat UI state. (Keeps your other site storage intact.)
     localStorage.setItem(VERSION_KEY, STORAGE_VERSION);
     localStorage.setItem("spiral_stop_count", "0");
     localStorage.removeItem("spiral_locked");
@@ -877,7 +873,7 @@
     }
   }
 
-  function stopCam(force=false){
+  function stopCam(){
     if (raf) cancelAnimationFrame(raf);
     raf = null;
 
@@ -898,15 +894,17 @@
   }
 
   /* ============================
-     Coward Chat (scripted pseudo-AI)
+     Coward Chat (scripted pseudo-AI, neutral/cryptic)
+     - 10 theme modules + fallback
+     - Ask “are you ready to go back?” every 2 user messages
   ============================ */
   const CHAT_KEY = "spiral_coward_chat_state";
   let chatState = JSON.parse(localStorage.getItem(CHAT_KEY) || "null") || {
-    turns: 0
+    turns: 0,        // number of user messages sent in coward chat
+    readyAsked: false
   };
 
   function saveChatState(){ localStorage.setItem(CHAT_KEY, JSON.stringify(chatState)); }
-
   function scrollChat(){ chatEl.scrollTop = chatEl.scrollHeight; }
 
   function addBubble(text, who){
@@ -923,44 +921,177 @@
     addBubble("What are you avoiding?", "system");
   }
 
-  function analyze(text){
-    const t = (text || "").toLowerCase();
-    const has = (w) => t.includes(w);
-
-    if (has("work") || has("job") || has("career")) return "You call it “work” so you don’t have to call it fear.";
-    if (has("love") || has("relationship") || has("her") || has("him")) return "You keep saying their name. The mirror keeps saying yours.";
-    if (has("money") || has("rent") || has("broke")) return "Numbers are a mask. Under the mask is a body holding its breath.";
-    if (has("death") || has("dying") || has("mortality")) return "You looked away from the mirror. Not from the end.";
-    if (has("anxiety") || has("panic") || has("stress")) return "Anxiety is movement without travel.";
-    if (has("alone") || has("lonely")) return "Loneliness is a room that echoes when you finally speak.";
-    if (has("art") || has("create") || has("music")) return "Creation is a confession you can pretend is aesthetic.";
-    return "Say it in one sentence. Don’t decorate it.";
+  function cleanWords(text){
+    return (text || "")
+      .toLowerCase()
+      .replace(/[^a-z0-9\s'’-]/g, " ")
+      .split(/\s+/)
+      .filter(Boolean);
   }
 
-  function systemReply(userText){
-    const turns = chatState.turns;
-
-    if (turns === 0){
-      return "Good. A direct answer is rare.\nRead it back to yourself, slowly.";
-    }
-    if (turns === 1){
-      return analyze(userText) + "\n\nIf the mirror is hard to look at, what are you protecting?";
-    }
-    if (turns === 2){
-      return "You can keep moving forever.\nOr you can stay.\n\nAre you ready to go back?";
-    }
-    return "Are you ready to go back?";
+  function pickEcho(text){
+    const words = cleanWords(text).filter(w => w.length >= 4);
+    if (!words.length) return "";
+    // pick 1 word near the end to feel “listening”
+    const w = words[Math.max(0, words.length - 2)];
+    return w ? `"${w}"` : "";
   }
 
-  function presentReadyChoice(){
+  const THEMES = [
+    {
+      name: "anxiety",
+      keys: ["anxiety","panic","stress","worried","worry","overthink","overthinking","fear","scared","terrified","nervous"],
+      lines: [
+        "Anxiety is movement without travel.\nName the place you keep running to.",
+        "Your mind calls it “stress.”\nYour body calls it “alarm.”"
+      ]
+    },
+    {
+      name: "avoidance",
+      keys: ["avoid","avoiding","procrastinate","procrastination","later","tomorrow","stall","stuck","paralyzed","freeze","postpone"],
+      lines: [
+        "Avoidance is a ritual.\nWhat do you do instead of beginning?",
+        "If you started today, what would collapse?"
+      ]
+    },
+    {
+      name: "love",
+      keys: ["love","relationship","breakup","heart","girlfriend","boyfriend","husband","wife","her","him","they","miss","attachment"],
+      lines: [
+        "You keep circling them.\nThe spiral keeps circling you.",
+        "What are you hoping they prove about you?"
+      ]
+    },
+    {
+      name: "shame",
+      keys: ["shame","guilt","regret","embarrassed","humiliated","fault","blame","sorry","mistake"],
+      lines: [
+        "Shame survives on the unsaid.\nSay the simplest version.",
+        "Guilt can be a compass—or a cage.\nWhich one did you build?"
+      ]
+    },
+    {
+      name: "money",
+      keys: ["money","rent","bills","debt","broke","poor","job","career","work","paycheck","pay","income"],
+      lines: [
+        "Survival turns every thought into a number.\nWhat does “enough” look like in silence?",
+        "You can’t budget your way out of emptiness.\nBut you can name what it costs you."
+      ]
+    },
+    {
+      name: "grief",
+      keys: ["death","dying","mortality","grief","funeral","cemetery","lost","loss","gone","missed","sick"],
+      lines: [
+        "You don’t fear death.\nYou fear being unfinished.",
+        "What are you trying to outlive?"
+      ]
+    },
+    {
+      name: "identity",
+      keys: ["identity","who","am","i","self","worth","confidence","insecure","imposter","impostor","meaning","purpose"],
+      lines: [
+        "You keep asking who you are.\nTry: what do you refuse to be?",
+        "If nobody watched, what would remain true?"
+      ]
+    },
+    {
+      name: "anger",
+      keys: ["angry","anger","mad","rage","furious","hate","resent","resentment","betrayed"],
+      lines: [
+        "Anger is often grief wearing armor.\nWhat is it protecting?",
+        "Who benefits from your silence?"
+      ]
+    },
+    {
+      name: "body",
+      keys: ["tired","exhausted","sleep","insomnia","pain","sick","body","ache","hurt","burnout","burned","burnt"],
+      lines: [
+        "Your body is the part of you that can’t lie.\nWhere is the weight?",
+        "Rest is not a reward.\nIt’s a baseline you were denied."
+      ]
+    },
+    {
+      name: "creation",
+      keys: ["art","create","creating","music","song","paint","draw","writing","write","project","nft","drop","work","make"],
+      lines: [
+        "Creation is a confession you can pretend is aesthetic.\nWhat are you smuggling inside it?",
+        "You want the work to speak.\nWhat are you afraid it will say?"
+      ]
+    }
+  ];
+
+  const FALLBACK = [
+    "Say it again, shorter.\nMake it sharp.",
+    "Don’t explain.\nPoint to the center.",
+    "What is the sentence you keep refusing to write?"
+  ];
+
+  function bestTheme(text){
+    const words = cleanWords(text);
+    if (!words.length) return null;
+
+    // score each theme by keyword matches
+    let best = null;
+    let bestScore = 0;
+    for (const t of THEMES){
+      let score = 0;
+      for (const k of t.keys){
+        if (words.includes(k)) score++;
+      }
+      if (score > bestScore){
+        bestScore = score;
+        best = t;
+      }
+    }
+    return bestScore > 0 ? best : null;
+  }
+
+  function pickLine(arr){
+    return arr[Math.floor(Math.random() * arr.length)];
+  }
+
+  function replyFor(text){
+    const echo = pickEcho(text);
+    const theme = bestTheme(text);
+
+    let line;
+    if (theme){
+      line = pickLine(theme.lines);
+    } else {
+      line = pickLine(FALLBACK);
+    }
+
+    // subtle “listening” echo, but only sometimes (keeps it from feeling templated)
+    const shouldEcho = echo && Math.random() < 0.55;
+    if (shouldEcho){
+      return `You said ${echo}.\n${line}`;
+    }
+    return line;
+  }
+
+  function askReady(){
+    chatState.readyAsked = true;
+    saveChatState();
+    addBubble("Are you ready to go back?", "system");
     choiceRow.style.display = "flex";
     scrollChat();
+  }
+
+  function clearReady(){
+    chatState.readyAsked = false;
+    saveChatState();
+    choiceRow.style.display = "none";
   }
 
   function enterCoward(){
     document.body.classList.add("coward");
     seedChatIfEmpty();
     confessionEl.focus();
+    // If a previous session was mid-ready, restore choices
+    if (chatState.readyAsked) {
+      choiceRow.style.display = "flex";
+      scrollChat();
+    }
   }
 
   function leaveCoward(){
@@ -974,17 +1105,26 @@
     const text = confessionEl.value.trim();
     if (!text) return;
 
+    // If we’re waiting for ready yes/no, treat typing as “No” implicitly (keep it moving)
+    if (chatState.readyAsked){
+      clearReady();
+      addBubble("Then stay.", "system");
+    }
+
     addBubble(text, "user");
     confessionEl.value = "";
 
-    const reply = systemReply(text);
+    const reply = replyFor(text);
 
     setTimeout(() => {
       addBubble(reply, "system");
+
       chatState.turns += 1;
       saveChatState();
-      if (chatState.turns >= 3){
-        presentReadyChoice();
+
+      // Ask “ready” every 2 user messages: 2, 4, 6, ...
+      if (chatState.turns % 2 === 0){
+        setTimeout(askReady, 380);
       }
     }, 420);
   }
@@ -993,11 +1133,10 @@
      Stop behavior and routing
   ============================ */
   function goCoward(){
-    // Stop counter increments here:
     // Stop #1 and #2 => coward chat
     // Stop #3 => locked page
     const nowLocked = registerStop();
-    stopCam(true);
+    stopCam();
 
     if (nowLocked){
       location.hash = "#locked";
@@ -1100,7 +1239,6 @@
   backBtn.onclick = backFromCoward;
   enterBtn.onclick = handleSend;
 
-  // Enter to send, Shift+Enter for newline
   confessionEl.addEventListener("keydown", (e) => {
     if (e.key === "Enter" && !e.shiftKey){
       e.preventDefault();
@@ -1110,19 +1248,20 @@
 
   readyYes.onclick = () => {
     addBubble("Then return.", "system");
-    choiceRow.style.display = "none";
+    clearReady();
     setTimeout(() => {
       backFromCoward();
     }, 650);
   };
 
   readyNo.onclick = () => {
-    addBubble("Then stay here with it a moment longer.", "system");
-    choiceRow.style.display = "none";
+    addBubble("Then stay with it.", "system");
+    clearReady();
+    confessionEl.focus();
   };
 
   document.addEventListener("visibilitychange", () => {
-    if (document.hidden) stopCam(true);
+    if (document.hidden) stopCam();
   });
 
   // Load
@@ -1133,12 +1272,7 @@
   applyLockedUI();
   syncRoute();
 
-  // Restore chat state (so it doesn't vanish on refresh)
-  // If they already progressed to the ready question, show choices.
   seedChatIfEmpty();
-  if (chatState.turns >= 3){
-    choiceRow.style.display = "flex";
-  }
 </script>
 
 </body>
