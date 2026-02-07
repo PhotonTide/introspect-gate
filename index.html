@@ -734,6 +734,7 @@
 
   const NEED = 7000;
 
+  // Thresholds (kept the same; logic below is now strict)
   const STILL_THRESH = 6.0;
   const MOVE_THRESH  = 12.0;
   const FINISH_QUIET  = 6.0;
@@ -1103,7 +1104,6 @@
       return;
     }
 
-    // subtle rejection (neutral/cryptic)
     addBubble("Not yet.\nType RETURN.", "system");
     returnInput.value = "";
     returnInput.focus();
@@ -1133,7 +1133,6 @@
     const text = confessionEl.value.trim();
     if (!text) return;
 
-    // if the return gate is open, typing counts as choosing to stay
     if (chatState.readyAsked){
       hideReadyGate();
       addBubble("Then stay.", "system");
@@ -1220,12 +1219,13 @@
 
     const m = motionScore();
 
+    // ===== STRICT STILLNESS (HARD RESET) =====
+    // Any motion above MOVE_THRESH resets progress instantly.
+    // No decay / no partial credit.
     if (m > MOVE_THRESH){
       stillMs = 0;
-    } else if (m < STILL_THRESH){
-      stillMs += dt;
     } else {
-      stillMs = Math.max(0, stillMs - dt * 0.65);
+      stillMs += dt;
     }
 
     if (!triggered){
@@ -1233,6 +1233,7 @@
       else if (stillMs < 4500) hint.textContent = "Stay.";
       else if (stillMs < NEED) hint.textContent = "…";
       else {
+        // Keep the final quiet check before opening
         if (m < FINISH_QUIET) beginPortal();
         else stillMs = 0;
       }
