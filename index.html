@@ -250,6 +250,97 @@
     100% { transform: scale(2.00); filter: blur(1.25px); }
   }
 
+  /* ===== Key Reveal (after ritual, before redirect) ===== */
+  .keyReveal{
+    position:absolute;
+    inset:0;
+    display:grid;
+    place-items:center;
+    z-index:90;
+    pointer-events:none;
+    opacity:0;
+    transition: opacity 420ms ease;
+  }
+  .keyReveal.on{ opacity:1; pointer-events:auto; }
+
+  .keyReveal::before{
+    content:"";
+    position:absolute;
+    inset:-18%;
+    opacity:.14;
+    background:
+      repeating-radial-gradient(circle,
+        rgba(255,255,255,1) 0px,
+        rgba(255,255,255,1) 2px,
+        rgba(0,0,0,1) 2px,
+        rgba(0,0,0,1) 20px);
+    transform: rotate(7deg) scale(1.2);
+    filter: blur(0.35px) contrast(1.05);
+  }
+
+  .keyCard{
+    position:relative;
+    width:min(88vw,760px);
+    border-radius:18px;
+    padding:22px 20px;
+    background:rgba(0,0,0,.66);
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,.10);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+  }
+
+  .keyTitle{
+    margin:0 0 8px;
+    font-size:12px;
+    letter-spacing:.22em;
+    text-transform:uppercase;
+    opacity:.80;
+  }
+
+  .keyValue{
+    margin:0 0 14px;
+    font-size: clamp(16px, 2.6vw, 26px);
+    letter-spacing:.12em;
+    text-transform:none;
+    line-height:1.35;
+    padding:14px 14px;
+    border-radius:14px;
+    background:rgba(255,255,255,.06);
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,.10);
+    user-select:text;
+    word-break:break-all;
+  }
+
+  .keyNote{
+    margin:0 0 14px;
+    font-size:11px;
+    letter-spacing:.14em;
+    text-transform:uppercase;
+    opacity:.62;
+    line-height:1.35;
+  }
+
+  .keyRow{
+    display:flex;
+    gap:10px;
+    justify-content:flex-end;
+    flex-wrap:wrap;
+  }
+
+  .copyBtn{
+    pointer-events:auto;
+  }
+
+  .copied{
+    font-size:11px;
+    letter-spacing:.14em;
+    text-transform:uppercase;
+    opacity:.0;
+    transition: opacity 260ms ease;
+    align-self:center;
+  }
+  .copied.show{ opacity:.62; }
+
   /* ===== Coward “page” (Stop 1-2) — confession chat ===== */
   .cowardPage{
     position:absolute;
@@ -525,6 +616,19 @@
 
     <div class="portal" id="portal"></div>
 
+    <!-- Key reveal overlay -->
+    <div class="keyReveal" id="keyReveal" aria-hidden="true">
+      <div class="keyCard">
+        <div class="keyTitle">KEY REVEALED</div>
+        <div class="keyValue" id="keyValue">1thevoidlooksback1</div>
+        <div class="keyNote">Do not share it. Carry it with you.</div>
+        <div class="keyRow">
+          <div class="copied" id="copied">Copied.</div>
+          <button class="copyBtn" id="copyBtn">Copy</button>
+        </div>
+      </div>
+    </div>
+
     <!-- Coward page -> confession chat (STOP #1 and #2 only) -->
     <div class="cowardPage" id="cowardPage">
       <div class="cowardInner">
@@ -594,7 +698,16 @@
 </div>
 
 <script>
-  const SECRET_URL = "https://www.photonisdead.com/";
+  // =========================
+  // CONFIG
+  // =========================
+  // Set this to your Manifold Claim / Secret Page URL once you have it.
+  // (Keep your custom domain introspect.wtf pointing to this Vercel site; the redirect happens AFTER reveal.)
+  const MANIFOLD_URL = "https://YOUR-MANIFOLD-LINK-HERE";
+  const SECRET_KEY = "1thevoidlooksback1";
+
+  // If you want to continue to an intermediate site first, replace MANIFOLD_URL above accordingly.
+  // =========================
 
   const vid = document.getElementById("vid");
   const startBtn = document.getElementById("start");
@@ -605,6 +718,37 @@
   const statusEl = document.getElementById("status");
   const portal = document.getElementById("portal");
   const clock = document.getElementById("clock");
+
+  // Key reveal elements
+  const keyReveal = document.getElementById("keyReveal");
+  const keyValue = document.getElementById("keyValue");
+  const copyBtn = document.getElementById("copyBtn");
+  const copied = document.getElementById("copied");
+
+  keyValue.textContent = SECRET_KEY;
+
+  async function copyKey(){
+    try{
+      await navigator.clipboard.writeText(SECRET_KEY);
+      copied.classList.add("show");
+      setTimeout(() => copied.classList.remove("show"), 1100);
+    }catch(_){
+      // fallback: select text
+      const r = document.createRange();
+      r.selectNodeContents(keyValue);
+      const sel = window.getSelection();
+      sel.removeAllRanges();
+      sel.addRange(r);
+      copied.textContent = "Select & copy.";
+      copied.classList.add("show");
+      setTimeout(() => {
+        copied.textContent = "Copied.";
+        copied.classList.remove("show");
+        sel.removeAllRanges();
+      }, 1200);
+    }
+  }
+  copyBtn.addEventListener("click", copyKey);
 
   // Coward chat elements
   const chatEl = document.getElementById("chat");
@@ -620,13 +764,14 @@
   const stayBtn = document.getElementById("stayBtn");
 
   // ===== Versioned storage reset (prevents old localStorage causing weird behavior) =====
-  const STORAGE_VERSION = "spiral_gate_v6";
+  const STORAGE_VERSION = "spiral_gate_v7_keyreveal";
   const VERSION_KEY = "spiral_storage_version";
   if (localStorage.getItem(VERSION_KEY) !== STORAGE_VERSION){
     localStorage.setItem(VERSION_KEY, STORAGE_VERSION);
     localStorage.setItem("spiral_stop_count", "0");
     localStorage.removeItem("spiral_locked");
     localStorage.removeItem("spiral_coward_chat_state");
+    localStorage.removeItem("spiral_fail_count");
   }
 
   // ===== Fail whisper (stillness fails, camera denied, etc.) =====
@@ -734,16 +879,22 @@
 
   const NEED = 7000;
 
-  // Thresholds (kept the same; logic below is now strict)
-  const STILL_THRESH = 6.0;
+  // Thresholds
   const MOVE_THRESH  = 12.0;
   const FINISH_QUIET  = 6.0;
 
   const PORTAL_DELAY = 240;
 
-  const AUDIO_FADE_MS = 1400;
+  // ===== Key reveal timing =====
+  // Portal anim is 5600ms. We'll show the key near the end, hold it briefly, then redirect.
   const PORTAL_TOTAL_MS = 5600;
-  const REDIRECT_AFTER = Math.max(900, PORTAL_TOTAL_MS - 250);
+  const KEY_REVEAL_AT_MS = 4000;    // after portal starts
+  const KEY_HOLD_MS      = 2000;    // time key stays visible before redirect
+
+  // ===== Audio fade =====
+  const AUDIO_FADE_MS = 1600;
+  // Redirect after: key reveal moment + hold time (cap within portal window + a bit)
+  const REDIRECT_AFTER = Math.min(PORTAL_TOTAL_MS + 900, KEY_REVEAL_AT_MS + KEY_HOLD_MS + 450);
 
   // ===== Ambient sound (procedural) =====
   let audioCtx = null, master = null;
@@ -837,9 +988,18 @@
 
   function resetGate(){
     portal.classList.remove("on");
+    keyReveal.classList.remove("on");
+    keyReveal.setAttribute("aria-hidden","true");
     triggered = false;
     stillMs = 0;
     last = null;
+  }
+
+  function showKeyReveal(){
+    keyReveal.classList.add("on");
+    keyReveal.setAttribute("aria-hidden","false");
+    // subtle auto-copy attempt (won't work on all browsers unless user interacts)
+    // so we keep the Copy button.
   }
 
   function beginPortal(){
@@ -853,6 +1013,7 @@
     hint.textContent = "Falling inward.";
     sub.textContent = "Recognized.";
 
+    // gentle swell
     if (audioCtx && master){
       const t = audioCtx.currentTime;
       master.gain.cancelScheduledValues(t);
@@ -863,11 +1024,21 @@
     setTimeout(() => {
       portal.classList.add("on");
 
+      // reveal key near the end of the portal
+      setTimeout(() => {
+        showKeyReveal();
+
+        // focus copy button so keyboard users can hit Enter
+        setTimeout(() => copyBtn.focus?.(), 120);
+      }, KEY_REVEAL_AT_MS);
+
+      // fade audio to near-silent before redirect (smooth)
       const fadeAt = Math.max(0, REDIRECT_AFTER - AUDIO_FADE_MS);
       setTimeout(() => fadeOutAmbient(AUDIO_FADE_MS), fadeAt);
 
+      // redirect after they've had time to see/copy the key
       setTimeout(() => {
-        window.location.href = SECRET_URL;
+        window.location.href = MANIFOLD_URL;
       }, REDIRECT_AFTER);
 
     }, PORTAL_DELAY);
@@ -1220,8 +1391,6 @@
     const m = motionScore();
 
     // ===== STRICT STILLNESS (HARD RESET) =====
-    // Any motion above MOVE_THRESH resets progress instantly.
-    // No decay / no partial credit.
     if (m > MOVE_THRESH){
       stillMs = 0;
     } else {
@@ -1233,7 +1402,6 @@
       else if (stillMs < 4500) hint.textContent = "Stay.";
       else if (stillMs < NEED) hint.textContent = "…";
       else {
-        // Keep the final quiet check before opening
         if (m < FINISH_QUIET) beginPortal();
         else stillMs = 0;
       }
