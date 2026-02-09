@@ -87,6 +87,8 @@
     transform: rotate(-8deg) scale(1.2);
     filter: blur(0.35px) contrast(1.05);
   }
+
+  /* IMPORTANT: fixed layout (no jumping) */
   .cowardInner{
     position:relative;
     text-align:left;
@@ -98,20 +100,19 @@
     -webkit-backdrop-filter: blur(10px);
     max-width:min(90vw,760px);
     width:min(90vw,760px);
-  }
-  .cowardTitle{margin:0 0 6px;font-size:18px;letter-spacing:.18em;text-transform:uppercase;}
-  .cowardSub{margin:0 0 6px;opacity:.70;letter-spacing:.10em;text-transform:uppercase;font-size:11px;line-height:1.35;}
-  .rules{
-    margin:0 0 14px;
-    font-size:10px;
-    letter-spacing:.18em;
-    text-transform:uppercase;
-    opacity:.50;
-    user-select:none;
+    display:flex;
+    flex-direction:column;
+    gap:0;
   }
 
+  .cowardTitle{margin:0 0 6px;font-size:18px;letter-spacing:.18em;text-transform:uppercase;}
+  .cowardSub{margin:0 0 6px;opacity:.70;letter-spacing:.10em;text-transform:uppercase;font-size:11px;line-height:1.35;}
+  .rules{margin:0 0 14px;font-size:10px;letter-spacing:.18em;text-transform:uppercase;opacity:.50;user-select:none;}
+
   .chat{
-    height:min(42vh,320px);
+    flex:1;
+    min-height:min(42vh,320px);
+    max-height:min(42vh,320px);
     overflow:auto;
     padding:12px;
     border-radius:14px;
@@ -146,13 +147,27 @@
   .inputRow{display:flex;gap:10px;align-items:flex-end;}
   textarea{flex:1;resize:none;min-height:52px;max-height:140px;padding:12px 12px;border-radius:14px;border:0;outline:none;background:rgba(255,255,255,.06);color:#fff;font-size:12px;line-height:1.45;box-shadow: inset 0 0 0 1px rgba(255,255,255,.10);}
   .enterBtn{padding:12px 14px;border-radius:14px;background:rgba(255,255,255,.10);min-width:88px;height:52px;display:inline-flex;align-items:center;justify-content:center;}
+  .ghostBtn{background:rgba(255,255,255,.08);}
 
-  .readyGate{display:none;margin-top:10px;padding:12px;border-radius:14px;background:rgba(255,255,255,.04);box-shadow: inset 0 0 0 1px rgba(255,255,255,.06);}
+  /* Ready ritual (mode switch, no layout shift) */
+  .readyGate{
+    display:none;
+    margin-top:0;
+    padding:12px;
+    border-radius:14px;
+    background:rgba(255,255,255,.04);
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,.06);
+  }
   .readyGate.show{display:block;}
   .readyPrompt{margin:0 0 10px;font-size:11px;letter-spacing:.16em;text-transform:uppercase;opacity:.75;line-height:1.35;}
   .readyRow{display:flex;gap:10px;align-items:flex-end;}
   input[type="text"]{flex:1;height:44px;padding:0 12px;border-radius:12px;border:0;outline:none;background:rgba(255,255,255,.06);color:#fff;font-size:12px;letter-spacing:.10em;text-transform:uppercase;box-shadow: inset 0 0 0 1px rgba(255,255,255,.10);}
-  .ghostBtn{background:rgba(255,255,255,.08);}
+
+  /* When readyGate is active: hide confession input so nothing shifts */
+  .cowardInner.readyMode .label,
+  .cowardInner.readyMode .inputRow{
+    display:none;
+  }
 
   /* ===== LOCKED after 3 Stops ===== */
   .lockedPage{position:absolute;inset:0;background:#000;z-index:120;display:none;overflow:hidden;align-items:center;justify-content:center;pointer-events:auto;}
@@ -176,7 +191,7 @@
     .stage{aspect-ratio:9/16;}
     body.mirroring .center{transform:translateY(-80vh);}
     .instruction{font-size:10px;letter-spacing:.14em;padding:9px 10px;}
-    .chat{height:min(46vh,360px);}
+    .chat{min-height:min(46vh,360px);max-height:min(46vh,360px);}
     .enterBtn{min-width:78px;}
   }
 </style>
@@ -204,7 +219,7 @@
 
     <!-- Coward page (Stop #1 and #2) -->
     <div class="cowardPage" id="cowardPage">
-      <div class="cowardInner">
+      <div class="cowardInner" id="cowardInner">
         <div class="cowardTitle">What are you avoiding</div>
         <div class="cowardSub">Is the mirror hard to look at?</div>
         <div class="rules">Short sentences. No explaining.</div>
@@ -212,7 +227,7 @@
         <div class="chat" id="chat"></div>
 
         <div class="label">Confess.</div>
-        <div class="inputRow">
+        <div class="inputRow" id="inputRow">
           <textarea id="confession" placeholder="Enter to send. Shift+Enter for a new line."></textarea>
           <button class="enterBtn" id="enterBtn">Enter</button>
         </div>
@@ -331,9 +346,10 @@
   const returnInput = document.getElementById("returnInput");
   const returnBtn = document.getElementById("returnBtn");
   const stayBtn = document.getElementById("stayBtn");
+  const cowardInner = document.getElementById("cowardInner");
 
   // ===== Versioned storage reset =====
-  const STORAGE_VERSION = "spiral_gate_v11_ritual_chat";
+  const STORAGE_VERSION = "spiral_gate_v12_ready_mode_fix";
   const VERSION_KEY = "spiral_storage_version";
   if (localStorage.getItem(VERSION_KEY) !== STORAGE_VERSION){
     localStorage.setItem(VERSION_KEY, STORAGE_VERSION);
@@ -528,9 +544,7 @@
       const fadeAt = Math.max(0, REDIRECT_AFTER - AUDIO_FADE_MS);
       setTimeout(()=>fadeOutAmbient(AUDIO_FADE_MS), fadeAt);
 
-      setTimeout(()=>{
-        window.location.href = MANIFOLD_URL;
-      }, REDIRECT_AFTER);
+      setTimeout(()=>{ window.location.href = MANIFOLD_URL; }, REDIRECT_AFTER);
 
     }, PORTAL_DELAY);
   }
@@ -597,13 +611,10 @@
   const CHAT_KEY="spiral_coward_chat_state";
   let chatState = JSON.parse(localStorage.getItem(CHAT_KEY)||"null") || {
     turns: 0,
-    stage: 0,          // 0=Identify, 1=Pressure, 2=Release (ask ready)
-    readyAsked: false,
-    lastTheme: "none",
-    lastEcho: ""
+    stage: 0,
+    readyAsked: false
   };
   const saveChatState=()=>localStorage.setItem(CHAT_KEY,JSON.stringify(chatState));
-
   const scrollChat=()=>{ chatEl.scrollTop=chatEl.scrollHeight; };
 
   function addBubble(text,who){
@@ -614,10 +625,7 @@
     scrollChat();
     return div;
   }
-
-  function addTyping(){
-    return addBubble("…", "typing");
-  }
+  function addTyping(){ return addBubble("…","typing"); }
 
   function seedChatIfEmpty(){
     if(chatEl.children.length) return;
@@ -628,73 +636,51 @@
   function cleanWords(text){
     return (text||"").toLowerCase().replace(/[^a-z0-9\s'’-]/g," ").split(/\s+/).filter(Boolean);
   }
-
   function pickFragment(text){
-    const w = cleanWords(text).filter(x=>x.length>=4);
+    const w=cleanWords(text).filter(x=>x.length>=4);
     if(!w.length) return "";
-    const pick = w[Math.max(0, w.length-2)];
+    const pick=w[Math.max(0,w.length-2)];
     return pick ? `"${pick}"` : "";
   }
+  function pick(arr){ return arr[Math.floor(Math.random()*arr.length)]; }
 
   const THEMES = [
-    { id:"fear", keys:["anxiety","panic","stress","worried","worry","overthink","overthinking","fear","scared","terrified","nervous"],
+    { keys:["anxiety","panic","stress","worried","worry","overthink","fear","scared","terrified","nervous"],
       identify:["What is the danger you keep rehearsing?","What are you bracing for?"],
-      pressure:["If it happened right now, what would you do first?","If you stopped scanning for it, what would you notice instead?"],
-      release:["You’ve named it.\nDo you want to face the mirror again?"] },
-
-    { id:"avoid", keys:["avoid","avoiding","procrastinate","procrastination","later","tomorrow","stall","stuck","paralyzed","freeze","postpone"],
+      pressure:["If it happened right now, what would you do first?","If you stopped scanning for it, what would you notice instead?"] },
+    { keys:["avoid","avoiding","procrastinate","later","tomorrow","stall","stuck","paralyzed","freeze","postpone"],
       identify:["What do you do instead of beginning?","What do you call it when you delay on purpose?"],
-      pressure:["If you started tonight, what would collapse?","What would you lose if you stopped delaying?"],
-      release:["You know the pattern.\nAre you ready to go back?"] },
-
-    { id:"shame", keys:["shame","guilt","regret","embarrassed","humiliated","fault","blame","sorry","mistake"],
+      pressure:["If you started tonight, what would collapse?","What would you lose if you stopped delaying?"] },
+    { keys:["shame","guilt","regret","embarrassed","humiliated","fault","blame","sorry","mistake"],
       identify:["What is the simplest version of it?","What do you keep trying to erase?"],
-      pressure:["If you said it out loud, who would you become?","What would change if you forgave yourself first?"],
-      release:["Enough.\nReturn to the mirror?"] },
-
-    { id:"love", keys:["love","relationship","breakup","heart","girlfriend","boyfriend","husband","wife","miss","attachment","alone","lonely"],
+      pressure:["If you said it out loud, who would you become?","What would change if you forgave yourself first?"] },
+    { keys:["love","relationship","breakup","heart","miss","attachment","alone","lonely"],
       identify:["Who are you still circling?","What are you hoping they prove about you?"],
-      pressure:["If they never returned, what stays unresolved?","What part of you keeps waiting?"],
-      release:["You’ve seen the loop.\nGo back?"] },
-
-    { id:"money", keys:["money","rent","bills","debt","broke","poor","job","career","work","paycheck","income"],
-      identify:["What does “enough” look like in silence?","What number keeps haunting you?"],
-      pressure:["If the numbers vanished, what would remain?","What do you fear you’ll become without control?"],
-      release:["You can breathe.\nReturn?"] },
-
-    { id:"identity", keys:["identity","self","worth","confidence","insecure","imposter","impostor","meaning","purpose"],
+      pressure:["If they never returned, what stays unresolved?","What part of you keeps waiting?"] },
+    { keys:["money","rent","bills","debt","job","career","work","income"],
+      identify:["What number keeps haunting you?","What does “enough” look like in silence?"],
+      pressure:["If the numbers vanished, what would remain?","What do you fear you’ll become without control?"] },
+    { keys:["identity","self","worth","confidence","insecure","imposter","meaning","purpose"],
       identify:["Who are you when nobody watches?","What do you refuse to be?"],
-      pressure:["If you stopped performing, what would remain?","What truth do you keep avoiding because it changes you?"],
-      release:["You’ve touched the center.\nGo back?"] },
-
-    { id:"anger", keys:["angry","anger","mad","rage","furious","hate","resent","resentment","betrayed"],
+      pressure:["If you stopped performing, what would remain?","What truth changes you if you admit it?"] },
+    { keys:["angry","anger","mad","rage","resent","betrayed"],
       identify:["What is your anger protecting?","Who did you learn silence from?"],
-      pressure:["If you stopped holding it, what would you feel underneath?","Who benefits from you staying stuck?"],
-      release:["You can set it down.\nReturn?"] },
-
-    { id:"body", keys:["tired","exhausted","sleep","insomnia","pain","sick","body","ache","hurt","burnout","burned","burnt"],
+      pressure:["If you stopped holding it, what would you feel underneath?","Who benefits from you staying stuck?"] },
+    { keys:["tired","exhausted","sleep","insomnia","pain","body","burnout"],
       identify:["Where is the weight in your body?","What part of you is asking to stop?"],
-      pressure:["If you rested, what would you have to admit?","What do you fear will catch up to you in stillness?"],
-      release:["Be honest.\nGo back?"] },
-
-    { id:"death", keys:["death","dying","mortality","grief","funeral","cemetery","lost","loss","gone","missed"],
+      pressure:["If you rested, what would you have to admit?","What catches up to you in stillness?"] },
+    { keys:["death","dying","mortality","grief","lost","loss","gone"],
       identify:["What are you trying to outlive?","Who are you carrying with you?"],
-      pressure:["If you accepted it, what would you stop postponing?","What would you do differently this week?"],
-      release:["You’re here.\nReturn?"] },
-
-    { id:"art", keys:["art","create","creating","music","song","paint","draw","writing","write","project","nft","drop","make"],
+      pressure:["If you accepted it, what would you stop postponing?","What would you do differently this week?"] },
+    { keys:["art","create","music","paint","draw","writing","project","nft","drop","make"],
       identify:["What are you smuggling inside the work?","What do you hide behind aesthetic?"],
-      pressure:["If the work told the truth, what would it say?","What do you fear the audience will recognize?"],
-      release:["You’ve confessed.\nReturn?"] }
+      pressure:["If the work told the truth, what would it say?","What do you fear the audience will recognize?"] }
   ];
 
   const GENERIC = {
-    identify:["Say it plainly.","Name the center, not the edges.","What is the thing under the story?"],
-    pressure:["If you stopped running, what would you feel first?","What happens if you stay with it for one minute?","What are you protecting yourself from?"],
-    release:["You can go back now.","Are you ready to return to the mirror?","Do you want to face it again?"]
+    identify:["Say it plainly.","Name the center, not the edges.","What is under the story?"],
+    pressure:["If you stopped running, what would you feel first?","What happens if you stay with it for one minute?","What are you protecting yourself from?"]
   };
-
-  function pick(arr){ return arr[Math.floor(Math.random()*arr.length)]; }
 
   function bestTheme(text){
     const words=cleanWords(text);
@@ -710,50 +696,41 @@
   }
 
   function arcReply(text){
-    const frag = pickFragment(text);
-    const theme = bestTheme(text);
-    const t = theme || { id:"none", ...GENERIC };
+    const frag=pickFragment(text);
+    const theme=bestTheme(text);
+    const t=theme || GENERIC;
 
-    chatState.lastTheme = t.id;
-    chatState.lastEcho = frag;
-
-    // Mirror a fragment, then move the arc forward
-    let opener = "";
-    if(frag && Math.random()<0.70){
-      opener = `You said ${frag}.\n`;
-    }
+    const opener = (frag && Math.random()<0.70) ? `You said ${frag}.\n` : "";
 
     if(chatState.stage === 0){
       chatState.stage = 1;
-      return opener + pick(t.identify || GENERIC.identify);
+      return opener + pick((t.identify||GENERIC.identify));
     }
-
     if(chatState.stage === 1){
       chatState.stage = 2;
-      return opener + pick(t.pressure || GENERIC.pressure);
+      return opener + pick((t.pressure||GENERIC.pressure));
     }
-
-    // stage 2 and beyond: keep pressure variations, but periodically offer release again
-    return opener + pick(t.pressure || GENERIC.pressure);
+    // stage 2+: keep pressure
+    return opener + pick((t.pressure||GENERIC.pressure));
   }
 
   function showReadyGate(){
-    chatState.readyAsked=true;
+    chatState.readyAsked = true;
     saveChatState();
     addBubble("Are you ready to go back?","system");
     readyGate.classList.add("show");
+    cowardInner.classList.add("readyMode");  // <<< prevents layout shift
     returnInput.value="";
     setTimeout(()=>returnInput.focus(),120);
     scrollChat();
   }
 
   function hideReadyGate(){
-    chatState.readyAsked=false;
+    chatState.readyAsked = false;
     saveChatState();
     readyGate.classList.remove("show");
+    cowardInner.classList.remove("readyMode");
   }
-
-  function normalizeReturn(s){ return (s||"").toUpperCase().replace(/[^A-Z]/g,""); }
 
   function backFromCoward(){
     hideReadyGate();
@@ -765,12 +742,13 @@
     showFail();
   }
 
+  function normalizeReturn(s){ return (s||"").toUpperCase().replace(/[^A-Z]/g,""); }
+
   function attemptReturn(){
-    const val = normalizeReturn(returnInput.value);
-    if(val === "RETURN"){
+    const val=normalizeReturn(returnInput.value);
+    if(val==="RETURN"){
       addBubble("Then return.","system");
       hideReadyGate();
-      // Reset arc for next time they stop again
       chatState.stage = 0;
       chatState.turns = 0;
       saveChatState();
@@ -785,24 +763,23 @@
   function enterCoward(){
     document.body.classList.add("coward");
     seedChatIfEmpty();
-    confessionEl.focus();
-
-    // If they were already at release stage, restore the gate
     if(chatState.readyAsked){
       readyGate.classList.add("show");
+      cowardInner.classList.add("readyMode");
       setTimeout(()=>returnInput.focus(),120);
     }else{
       readyGate.classList.remove("show");
+      cowardInner.classList.remove("readyMode");
+      setTimeout(()=>confessionEl.focus(),120);
     }
   }
 
   function handleSend(){
     if(locked) return;
-
     const text=confessionEl.value.trim();
     if(!text) return;
 
-    // If they typed while readyGate is open, that counts as choosing "Stay"
+    // if readyGate is open and they type, it means "stay"
     if(chatState.readyAsked){
       hideReadyGate();
       addBubble("Then stay.","system");
@@ -811,33 +788,27 @@
     addBubble(text,"user");
     confessionEl.value="";
 
-    // typing indicator
-    const typing = addTyping();
+    const typing=addTyping();
 
-    // disable enter briefly to avoid double-send
-    enterBtn.disabled = true;
-    setTimeout(()=>{ enterBtn.disabled = false; }, 280);
+    enterBtn.disabled=true;
+    setTimeout(()=>{ enterBtn.disabled=false; }, 280);
 
-    const reply = arcReply(text);
+    const reply=arcReply(text);
     chatState.turns += 1;
     saveChatState();
 
-    const delay = Math.floor(TYPE_MIN_MS + Math.random()*(TYPE_MAX_MS - TYPE_MIN_MS));
+    const delay=Math.floor(TYPE_MIN_MS + Math.random()*(TYPE_MAX_MS - TYPE_MIN_MS));
 
     setTimeout(()=>{
-      // replace typing with actual reply
       typing.classList.remove("typing");
       typing.classList.add("system");
       typing.textContent = reply;
 
-      // Release stage: after pressure reply (stage became 2), ask ready on next beat
       if(chatState.stage === 2 && !chatState.readyAsked){
         setTimeout(showReadyGate, 520);
       } else if(chatState.stage >= 2 && !chatState.readyAsked){
-        // If they keep talking, still offer "ready" every 2 messages
         if(chatState.turns % 2 === 0) setTimeout(showReadyGate, 520);
       }
-
       scrollChat();
     }, delay);
   }
@@ -872,18 +843,12 @@
 
     if(!last){ last=f; return 999; }
 
-    const A=f.data;
-    const B=last.data;
-
+    const A=f.data, B=last.data;
     let sum=0, count=0;
 
     for(let i=0;i<A.length;i+=8){
-      const rA=A[i], gA=A[i+1], bA=A[i+2];
-      const rB=B[i], gB=B[i+1], bB=B[i+2];
-
-      const yA = (0.2126*rA + 0.7152*gA + 0.0722*bA);
-      const yB = (0.2126*rB + 0.7152*gB + 0.0722*bB);
-
+      const yA = (0.2126*A[i] + 0.7152*A[i+1] + 0.0722*A[i+2]);
+      const yB = (0.2126*B[i] + 0.7152*B[i+1] + 0.0722*B[i+2]);
       sum += Math.abs(yA - yB);
       count++;
     }
