@@ -167,7 +167,6 @@
     user-select:none;
   }
 
-  /* Fail whisper (non-stop failures) */
   .fail{
     margin-top:6px;
     font-size:11px;
@@ -250,7 +249,7 @@
     100% { transform: scale(2.00); filter: blur(1.25px); }
   }
 
-  /* ===== Key Reveal (after ritual, before redirect) ===== */
+  /* ===== Key Reveal ===== */
   .keyReveal{
     position:absolute;
     inset:0;
@@ -301,7 +300,6 @@
     margin:0 0 14px;
     font-size: clamp(16px, 2.6vw, 26px);
     letter-spacing:.12em;
-    text-transform:none;
     line-height:1.35;
     padding:14px 14px;
     border-radius:14px;
@@ -327,9 +325,7 @@
     flex-wrap:wrap;
   }
 
-  .copyBtn{
-    pointer-events:auto;
-  }
+  .copyBtn{ pointer-events:auto; }
 
   .copied{
     font-size:11px;
@@ -341,7 +337,7 @@
   }
   .copied.show{ opacity:.62; }
 
-  /* ===== Coward “page” (Stop 1-2) — confession chat ===== */
+  /* ===== Coward chat ===== */
   .cowardPage{
     position:absolute;
     inset:0;
@@ -475,7 +471,6 @@
     justify-content:center;
   }
 
-  /* Ready ritual (type to return) */
   .readyGate{
     display:none;
     margin-top:10px;
@@ -520,7 +515,7 @@
     background:rgba(255,255,255,.08);
   }
 
-  /* ===== LOCKED “fail page” after 3 Stops ===== */
+  /* ===== LOCKED ===== */
   .lockedPage{
     position:absolute;
     inset:0;
@@ -609,7 +604,6 @@
 
     <div class="portal" id="portal"></div>
 
-    <!-- Key reveal overlay -->
     <div class="keyReveal" id="keyReveal" aria-hidden="true">
       <div class="keyCard">
         <div class="keyTitle">KEY REVEALED</div>
@@ -622,7 +616,6 @@
       </div>
     </div>
 
-    <!-- Coward page -> confession chat (STOP #1 and #2 only) -->
     <div class="cowardPage" id="cowardPage">
       <div class="cowardInner">
         <div class="cowardTitle">What are you avoiding</div>
@@ -636,7 +629,6 @@
           <button class="enterBtn" id="enterBtn">Enter</button>
         </div>
 
-        <!-- Return only after participating -->
         <div class="readyGate" id="readyGate">
           <div class="readyPrompt" id="readyPrompt">Are you ready to go back?<br>Type RETURN.</div>
           <div class="readyRow">
@@ -648,7 +640,6 @@
       </div>
     </div>
 
-    <!-- Locked after 3 Stops -->
     <div class="lockedPage" id="lockedPage">
       <div class="lockedInner">
         <h2>LOCKED</h2>
@@ -657,7 +648,6 @@
       </div>
     </div>
 
-    <!-- Main HUD -->
     <div class="hud">
       <div class="top">
         <div class="instruction">HOLD STILL, BE PRESENT</div>
@@ -688,11 +678,25 @@
 
 <script>
   // =========================
-  // CONFIG (FINAL)
+  // CONFIG
   // =========================
   const MANIFOLD_URL = "https://manifold.xyz/@photon-tide/contract/144597232/11";
   const SECRET_KEY   = "1thevoidlooksback1";
+
   // =========================
+  // STRICT STILLNESS SETTINGS
+  // =========================
+  const NEED = 7000;            // ms required
+  const STILL_THRESH = 7.0;     // ONLY below this counts as "still"
+  // If motion >= STILL_THRESH -> HARD RESET (no credit).
+  // If you want even stricter, raise STILL_THRESH slightly (e.g. 8–9).
+
+  const PORTAL_DELAY = 240;
+  const PORTAL_TOTAL_MS = 5600;
+  const KEY_REVEAL_AT_MS = 4000;
+  const KEY_HOLD_MS      = 4500;
+  const AUDIO_FADE_MS    = 1600;
+  const REDIRECT_AFTER   = Math.min(PORTAL_TOTAL_MS + 1200, KEY_REVEAL_AT_MS + KEY_HOLD_MS + 450);
 
   const vid = document.getElementById("vid");
   const startBtn = document.getElementById("start");
@@ -704,7 +708,6 @@
   const portal = document.getElementById("portal");
   const clock = document.getElementById("clock");
 
-  // Key reveal elements
   const keyReveal = document.getElementById("keyReveal");
   const keyValue = document.getElementById("keyValue");
   const copyBtn = document.getElementById("copyBtn");
@@ -739,14 +742,13 @@
   const confessionEl = document.getElementById("confession");
   const enterBtn = document.getElementById("enterBtn");
 
-  // Ritual return elements
   const readyGate = document.getElementById("readyGate");
   const returnInput = document.getElementById("returnInput");
   const returnBtn = document.getElementById("returnBtn");
   const stayBtn = document.getElementById("stayBtn");
 
   // ===== Versioned storage reset =====
-  const STORAGE_VERSION = "spiral_gate_v8_final_manifold";
+  const STORAGE_VERSION = "spiral_gate_v9_strict_stillness";
   const VERSION_KEY = "spiral_storage_version";
   if (localStorage.getItem(VERSION_KEY) !== STORAGE_VERSION){
     localStorage.setItem(VERSION_KEY, STORAGE_VERSION);
@@ -859,28 +861,10 @@
   let stillMs = 0;
   let triggered = false;
 
-  const NEED = 7000;
+  // Require a brief stabilization period so the first frames don't instantly "count"
+  let warmupFrames = 0;
 
-  // STRICT: movement hard reset
-  const MOVE_THRESH  = 12.0;
-  const FINISH_QUIET = 6.0;
-
-  const PORTAL_DELAY = 240;
-
-  // ===== Key reveal timing =====
-  // Portal anim = 5600ms.
-  // Reveal key near end, then hold long enough to copy.
-  const PORTAL_TOTAL_MS = 5600;
-  const KEY_REVEAL_AT_MS = 4000;
-  const KEY_HOLD_MS      = 4500;  // <-- longer hold (extra 2–3 seconds)
-
-  // ===== Audio fade =====
-  const AUDIO_FADE_MS = 1600;
-
-  // Redirect after key reveal + hold
-  const REDIRECT_AFTER = Math.min(PORTAL_TOTAL_MS + 1200, KEY_REVEAL_AT_MS + KEY_HOLD_MS + 450);
-
-  // ===== Ambient sound (procedural) =====
+  // ===== Ambient audio (procedural) =====
   let audioCtx = null, master = null;
   let droneOsc = null, shimmerOsc = null, lfo = null, lfoGain = null;
 
@@ -977,6 +961,7 @@
     triggered = false;
     stillMs = 0;
     last = null;
+    warmupFrames = 0;
   }
 
   function showKeyReveal(){
@@ -1081,10 +1066,7 @@
   }
 
   /* ============================
-     Coward Chat (scripted pseudo-AI, neutral/cryptic)
-     - Ask “ready” every 2 user messages
-     - Return requires typing RETURN
-     - No manual “go back” button
+     Coward Chat (scripted pseudo-AI)
   ============================ */
   const CHAT_KEY = "spiral_coward_chat_state";
   let chatState = JSON.parse(localStorage.getItem(CHAT_KEY) || "null") || {
@@ -1277,7 +1259,6 @@
     const text = confessionEl.value.trim();
     if (!text) return;
 
-    // if return gate is open, typing counts as choosing to stay
     if (chatState.readyAsked){
       hideReadyGate();
       addBubble("Then stay.", "system");
@@ -1300,9 +1281,6 @@
     }, 420);
   }
 
-  /* ============================
-     Stop behavior and routing
-  ============================ */
   function goCoward(){
     const nowLocked = registerStop();
     stopCam();
@@ -1328,6 +1306,7 @@
     showFail();
   }
 
+  // Motion score (difference sampling)
   function motionScore(){
     if (!vid.videoWidth || !vid.videoHeight) return 999;
 
@@ -1364,8 +1343,17 @@
 
     const m = motionScore();
 
-    // STRICT STILLNESS (hard reset on movement)
-    if (m > MOVE_THRESH){
+    // Warmup: ignore the first ~0.5s so it can't "start counting" while the camera stabilizes
+    if (warmupFrames < 18){
+      warmupFrames++;
+      stillMs = 0;
+      raf = requestAnimationFrame(loop);
+      return;
+    }
+
+    // ✅ STRICT: ONLY "completely still" accumulates.
+    // Any movement at/above STILL_THRESH resets to 0 immediately.
+    if (m >= STILL_THRESH){
       stillMs = 0;
     } else {
       stillMs += dt;
@@ -1375,10 +1363,7 @@
       if (stillMs < 2000) hint.textContent = "Hold still. Be present.";
       else if (stillMs < 4500) hint.textContent = "Stay.";
       else if (stillMs < NEED) hint.textContent = "…";
-      else {
-        if (m < FINISH_QUIET) beginPortal();
-        else stillMs = 0;
-      }
+      else beginPortal();
     }
 
     raf = requestAnimationFrame(loop);
@@ -1401,6 +1386,14 @@
   }
   window.addEventListener("hashchange", syncRoute);
 
+  function setUp(){
+    if (locked) location.hash = "#locked";
+    showFail();
+    applyLockedUI();
+    syncRoute();
+    seedChatIfEmpty();
+  }
+
   // Controls
   startBtn.onclick = startCam;
   stopTop.onclick = goCoward;
@@ -1413,7 +1406,6 @@
     }
   });
 
-  // Return ritual events
   returnBtn.onclick = attemptReturn;
   stayBtn.onclick = () => {
     hideReadyGate();
@@ -1431,14 +1423,7 @@
     if (document.hidden) stopCam();
   });
 
-  // Load
-  if (locked){
-    location.hash = "#locked";
-  }
-  showFail();
-  applyLockedUI();
-  syncRoute();
-  seedChatIfEmpty();
+  setUp();
 </script>
 
 </body>
