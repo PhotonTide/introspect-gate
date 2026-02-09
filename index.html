@@ -335,7 +335,7 @@
     font-size:11px;
     letter-spacing:.14em;
     text-transform:uppercase;
-    opacity:.0;
+    opacity:0;
     transition: opacity 260ms ease;
     align-self:center;
   }
@@ -520,13 +520,6 @@
     background:rgba(255,255,255,.08);
   }
 
-  .cowardBtns{
-    display:flex;
-    gap:10px;
-    margin-top:12px;
-    justify-content:flex-end;
-  }
-
   /* ===== LOCKED “fail page” after 3 Stops ===== */
   .lockedPage{
     position:absolute;
@@ -643,7 +636,7 @@
           <button class="enterBtn" id="enterBtn">Enter</button>
         </div>
 
-        <!-- Ritual return gate (replaces Yes/No buttons) -->
+        <!-- Return only after participating -->
         <div class="readyGate" id="readyGate">
           <div class="readyPrompt" id="readyPrompt">Are you ready to go back?<br>Type RETURN.</div>
           <div class="readyRow">
@@ -651,10 +644,6 @@
             <button class="enterBtn" id="returnBtn">Enter</button>
             <button class="ghostBtn" id="stayBtn">Stay</button>
           </div>
-        </div>
-
-        <div class="cowardBtns">
-          <button class="ghostBtn" id="backBtn">Go back</button>
         </div>
       </div>
     </div>
@@ -699,14 +688,10 @@
 
 <script>
   // =========================
-  // CONFIG
+  // CONFIG (FINAL)
   // =========================
-  // Set this to your Manifold Claim / Secret Page URL once you have it.
-  // (Keep your custom domain introspect.wtf pointing to this Vercel site; the redirect happens AFTER reveal.)
-  const MANIFOLD_URL = "https://YOUR-MANIFOLD-LINK-HERE";
-  const SECRET_KEY = "1thevoidlooksback1";
-
-  // If you want to continue to an intermediate site first, replace MANIFOLD_URL above accordingly.
+  const MANIFOLD_URL = "https://manifold.xyz/@photon-tide/contract/144597232/11";
+  const SECRET_KEY   = "1thevoidlooksback1";
   // =========================
 
   const vid = document.getElementById("vid");
@@ -733,7 +718,6 @@
       copied.classList.add("show");
       setTimeout(() => copied.classList.remove("show"), 1100);
     }catch(_){
-      // fallback: select text
       const r = document.createRange();
       r.selectNodeContents(keyValue);
       const sel = window.getSelection();
@@ -754,17 +738,15 @@
   const chatEl = document.getElementById("chat");
   const confessionEl = document.getElementById("confession");
   const enterBtn = document.getElementById("enterBtn");
-  const backBtn = document.getElementById("backBtn");
 
   // Ritual return elements
   const readyGate = document.getElementById("readyGate");
-  const readyPrompt = document.getElementById("readyPrompt");
   const returnInput = document.getElementById("returnInput");
   const returnBtn = document.getElementById("returnBtn");
   const stayBtn = document.getElementById("stayBtn");
 
-  // ===== Versioned storage reset (prevents old localStorage causing weird behavior) =====
-  const STORAGE_VERSION = "spiral_gate_v7_keyreveal";
+  // ===== Versioned storage reset =====
+  const STORAGE_VERSION = "spiral_gate_v8_final_manifold";
   const VERSION_KEY = "spiral_storage_version";
   if (localStorage.getItem(VERSION_KEY) !== STORAGE_VERSION){
     localStorage.setItem(VERSION_KEY, STORAGE_VERSION);
@@ -774,7 +756,7 @@
     localStorage.removeItem("spiral_fail_count");
   }
 
-  // ===== Fail whisper (stillness fails, camera denied, etc.) =====
+  // ===== Fail whisper =====
   const failEl = document.getElementById("fail");
   const FAIL_KEY = "spiral_fail_count";
   let failCount = Number(localStorage.getItem(FAIL_KEY) || 0);
@@ -879,22 +861,24 @@
 
   const NEED = 7000;
 
-  // Thresholds
+  // STRICT: movement hard reset
   const MOVE_THRESH  = 12.0;
-  const FINISH_QUIET  = 6.0;
+  const FINISH_QUIET = 6.0;
 
   const PORTAL_DELAY = 240;
 
   // ===== Key reveal timing =====
-  // Portal anim is 5600ms. We'll show the key near the end, hold it briefly, then redirect.
+  // Portal anim = 5600ms.
+  // Reveal key near end, then hold long enough to copy.
   const PORTAL_TOTAL_MS = 5600;
-  const KEY_REVEAL_AT_MS = 4000;    // after portal starts
-  const KEY_HOLD_MS      = 2000;    // time key stays visible before redirect
+  const KEY_REVEAL_AT_MS = 4000;
+  const KEY_HOLD_MS      = 4500;  // <-- longer hold (extra 2–3 seconds)
 
   // ===== Audio fade =====
   const AUDIO_FADE_MS = 1600;
-  // Redirect after: key reveal moment + hold time (cap within portal window + a bit)
-  const REDIRECT_AFTER = Math.min(PORTAL_TOTAL_MS + 900, KEY_REVEAL_AT_MS + KEY_HOLD_MS + 450);
+
+  // Redirect after key reveal + hold
+  const REDIRECT_AFTER = Math.min(PORTAL_TOTAL_MS + 1200, KEY_REVEAL_AT_MS + KEY_HOLD_MS + 450);
 
   // ===== Ambient sound (procedural) =====
   let audioCtx = null, master = null;
@@ -998,8 +982,7 @@
   function showKeyReveal(){
     keyReveal.classList.add("on");
     keyReveal.setAttribute("aria-hidden","false");
-    // subtle auto-copy attempt (won't work on all browsers unless user interacts)
-    // so we keep the Copy button.
+    setTimeout(() => copyBtn.focus?.(), 120);
   }
 
   function beginPortal(){
@@ -1013,7 +996,6 @@
     hint.textContent = "Falling inward.";
     sub.textContent = "Recognized.";
 
-    // gentle swell
     if (audioCtx && master){
       const t = audioCtx.currentTime;
       master.gain.cancelScheduledValues(t);
@@ -1024,19 +1006,11 @@
     setTimeout(() => {
       portal.classList.add("on");
 
-      // reveal key near the end of the portal
-      setTimeout(() => {
-        showKeyReveal();
+      setTimeout(showKeyReveal, KEY_REVEAL_AT_MS);
 
-        // focus copy button so keyboard users can hit Enter
-        setTimeout(() => copyBtn.focus?.(), 120);
-      }, KEY_REVEAL_AT_MS);
-
-      // fade audio to near-silent before redirect (smooth)
       const fadeAt = Math.max(0, REDIRECT_AFTER - AUDIO_FADE_MS);
       setTimeout(() => fadeOutAmbient(AUDIO_FADE_MS), fadeAt);
 
-      // redirect after they've had time to see/copy the key
       setTimeout(() => {
         window.location.href = MANIFOLD_URL;
       }, REDIRECT_AFTER);
@@ -1108,9 +1082,9 @@
 
   /* ============================
      Coward Chat (scripted pseudo-AI, neutral/cryptic)
-     - 10 theme modules + fallback
      - Ask “ready” every 2 user messages
      - Return requires typing RETURN
+     - No manual “go back” button
   ============================ */
   const CHAT_KEY = "spiral_coward_chat_state";
   let chatState = JSON.parse(localStorage.getItem(CHAT_KEY) || "null") || {
@@ -1274,7 +1248,6 @@
       setTimeout(() => backFromCoward(), 650);
       return;
     }
-
     addBubble("Not yet.\nType RETURN.", "system");
     returnInput.value = "";
     returnInput.focus();
@@ -1304,6 +1277,7 @@
     const text = confessionEl.value.trim();
     if (!text) return;
 
+    // if return gate is open, typing counts as choosing to stay
     if (chatState.readyAsked){
       hideReadyGate();
       addBubble("Then stay.", "system");
@@ -1390,7 +1364,7 @@
 
     const m = motionScore();
 
-    // ===== STRICT STILLNESS (HARD RESET) =====
+    // STRICT STILLNESS (hard reset on movement)
     if (m > MOVE_THRESH){
       stillMs = 0;
     } else {
@@ -1431,9 +1405,7 @@
   startBtn.onclick = startCam;
   stopTop.onclick = goCoward;
 
-  backBtn.onclick = backFromCoward;
   enterBtn.onclick = handleSend;
-
   confessionEl.addEventListener("keydown", (e) => {
     if (e.key === "Enter" && !e.shiftKey){
       e.preventDefault();
@@ -1466,7 +1438,6 @@
   showFail();
   applyLockedUI();
   syncRoute();
-
   seedChatIfEmpty();
 </script>
 
