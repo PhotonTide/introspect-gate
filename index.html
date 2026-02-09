@@ -54,6 +54,7 @@
   @keyframes slowBreath{0%{filter:contrast(1.12) brightness(1.00);}50%{filter:contrast(1.28) brightness(1.04);}100%{filter:contrast(1.12) brightness(1.00);}}
   @keyframes fall{0%{transform:scale(1.0);filter:blur(0px);}30%{transform:scale(1.05);filter:blur(0.20px);}65%{transform:scale(1.18);filter:blur(0.55px);}100%{transform:scale(2.00);filter:blur(1.25px);}}
 
+  /* ===== Key Reveal ===== */
   .keyReveal{position:absolute;inset:0;display:grid;place-items:center;z-index:90;pointer-events:none;opacity:0;transition: opacity 420ms ease;}
   .keyReveal.on{opacity:1;pointer-events:auto;}
   .keyReveal::before{
@@ -74,6 +75,7 @@
   .copied{font-size:11px;letter-spacing:.14em;text-transform:uppercase;opacity:0;transition: opacity 260ms ease;align-self:center;}
   .copied.show{opacity:.62;}
 
+  /* ===== Coward “page” (Stop 1-2) — ritual chat ===== */
   .cowardPage{position:absolute;inset:0;background:#000;z-index:100;display:none;overflow:hidden;align-items:center;justify-content:center;pointer-events:auto;}
   body.coward .cowardPage{ display:flex; }
   .cowardPage::before{
@@ -85,17 +87,66 @@
     transform: rotate(-8deg) scale(1.2);
     filter: blur(0.35px) contrast(1.05);
   }
-  .cowardInner{position:relative;text-align:left;padding:22px 20px;border-radius:18px;background:rgba(0,0,0,.62);box-shadow: inset 0 0 0 1px rgba(255,255,255,.10);backdrop-filter: blur(10px);-webkit-backdrop-filter: blur(10px);max-width:min(90vw,760px);width:min(90vw,760px);}
+  .cowardInner{
+    position:relative;
+    text-align:left;
+    padding:22px 20px;
+    border-radius:18px;
+    background:rgba(0,0,0,.62);
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,.10);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    max-width:min(90vw,760px);
+    width:min(90vw,760px);
+  }
   .cowardTitle{margin:0 0 6px;font-size:18px;letter-spacing:.18em;text-transform:uppercase;}
-  .cowardSub{margin:0 0 14px;opacity:.70;letter-spacing:.10em;text-transform:uppercase;font-size:11px;line-height:1.35;}
-  .chat{height:min(42vh,320px);overflow:auto;padding:12px;border-radius:14px;background:rgba(255,255,255,.04);box-shadow: inset 0 0 0 1px rgba(255,255,255,.06);margin-bottom:12px;}
-  .bubble{max-width:82%;padding:10px 12px;border-radius:14px;margin:8px 0;font-size:12px;line-height:1.45;letter-spacing:.02em;white-space:pre-wrap;word-wrap:break-word;}
+  .cowardSub{margin:0 0 6px;opacity:.70;letter-spacing:.10em;text-transform:uppercase;font-size:11px;line-height:1.35;}
+  .rules{
+    margin:0 0 14px;
+    font-size:10px;
+    letter-spacing:.18em;
+    text-transform:uppercase;
+    opacity:.50;
+    user-select:none;
+  }
+
+  .chat{
+    height:min(42vh,320px);
+    overflow:auto;
+    padding:12px;
+    border-radius:14px;
+    background:rgba(255,255,255,.04);
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,.06);
+    margin-bottom:12px;
+  }
+
+  .bubble{
+    max-width:82%;
+    padding:10px 12px;
+    border-radius:14px;
+    margin:8px 0;
+    font-size:12px;
+    line-height:1.45;
+    letter-spacing:.02em;
+    white-space:pre-wrap;
+    word-wrap:break-word;
+  }
   .bubble.user{margin-left:auto;background:rgba(255,255,255,.10);box-shadow: inset 0 0 0 1px rgba(255,255,255,.08);}
   .bubble.system{margin-right:auto;background:rgba(0,0,0,.35);box-shadow: inset 0 0 0 1px rgba(255,255,255,.08);opacity:.92;}
-  .label{font-size:11px;letter-spacing:.16em;text-transform:uppercase;opacity:.70;margin:0 0 6px;}
+  .bubble.typing{
+    margin-right:auto;
+    background:rgba(0,0,0,.22);
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,.08);
+    opacity:.70;
+    font-style:italic;
+    letter-spacing:.10em;
+  }
+
+  .label{font-size:11px;letter-spacing:.16em;text-transform:uppercase;opacity:.72;margin:0 0 6px;}
   .inputRow{display:flex;gap:10px;align-items:flex-end;}
   textarea{flex:1;resize:none;min-height:52px;max-height:140px;padding:12px 12px;border-radius:14px;border:0;outline:none;background:rgba(255,255,255,.06);color:#fff;font-size:12px;line-height:1.45;box-shadow: inset 0 0 0 1px rgba(255,255,255,.10);}
   .enterBtn{padding:12px 14px;border-radius:14px;background:rgba(255,255,255,.10);min-width:88px;height:52px;display:inline-flex;align-items:center;justify-content:center;}
+
   .readyGate{display:none;margin-top:10px;padding:12px;border-radius:14px;background:rgba(255,255,255,.04);box-shadow: inset 0 0 0 1px rgba(255,255,255,.06);}
   .readyGate.show{display:block;}
   .readyPrompt{margin:0 0 10px;font-size:11px;letter-spacing:.16em;text-transform:uppercase;opacity:.75;line-height:1.35;}
@@ -103,6 +154,7 @@
   input[type="text"]{flex:1;height:44px;padding:0 12px;border-radius:12px;border:0;outline:none;background:rgba(255,255,255,.06);color:#fff;font-size:12px;letter-spacing:.10em;text-transform:uppercase;box-shadow: inset 0 0 0 1px rgba(255,255,255,.10);}
   .ghostBtn{background:rgba(255,255,255,.08);}
 
+  /* ===== LOCKED after 3 Stops ===== */
   .lockedPage{position:absolute;inset:0;background:#000;z-index:120;display:none;overflow:hidden;align-items:center;justify-content:center;pointer-events:auto;}
   body.locked .lockedPage{ display:flex; }
   .lockedPage::before{
@@ -137,6 +189,7 @@
 
     <div class="portal" id="portal"></div>
 
+    <!-- Key reveal -->
     <div class="keyReveal" id="keyReveal" aria-hidden="true">
       <div class="keyCard">
         <div class="keyTitle">KEY REVEALED</div>
@@ -149,21 +202,24 @@
       </div>
     </div>
 
+    <!-- Coward page (Stop #1 and #2) -->
     <div class="cowardPage" id="cowardPage">
       <div class="cowardInner">
         <div class="cowardTitle">What are you avoiding</div>
         <div class="cowardSub">Is the mirror hard to look at?</div>
+        <div class="rules">Short sentences. No explaining.</div>
 
         <div class="chat" id="chat"></div>
 
-        <div class="label">Answer.</div>
+        <div class="label">Confess.</div>
         <div class="inputRow">
-          <textarea id="confession" placeholder="type here... (Enter to send, Shift+Enter for a new line)"></textarea>
+          <textarea id="confession" placeholder="Enter to send. Shift+Enter for a new line."></textarea>
           <button class="enterBtn" id="enterBtn">Enter</button>
         </div>
 
+        <!-- RETURN ritual (only path back) -->
         <div class="readyGate" id="readyGate">
-          <div class="readyPrompt">Are you ready to go back?<br>Type RETURN.</div>
+          <div class="readyPrompt" id="readyPrompt">Are you ready to go back?<br>Type RETURN.</div>
           <div class="readyRow">
             <input id="returnInput" type="text" inputmode="text" autocomplete="off" spellcheck="false" placeholder="RETURN">
             <button class="enterBtn" id="returnBtn">Enter</button>
@@ -173,6 +229,7 @@
       </div>
     </div>
 
+    <!-- Locked after 3 Stops -->
     <div class="lockedPage" id="lockedPage">
       <div class="lockedInner">
         <h2>LOCKED</h2>
@@ -181,6 +238,7 @@
       </div>
     </div>
 
+    <!-- Main HUD -->
     <div class="hud">
       <div class="top">
         <div class="instruction">HOLD STILL, BE PRESENT</div>
@@ -220,18 +278,19 @@
   // ULTRA STRICT STILLNESS
   // =========================
   const NEED = 7000;              // 7 seconds
-  const STILL_THRESH = 3.8;       // LOWER = stricter (try 3.0 if you want brutal)
-  const WARMUP_FRAMES = 24;       // ~0.7s
-  const REQUIRE_CONSEC_FRAMES = 90; // must be still for ~90 consecutive frames (~3s @30fps) while also meeting NEED
-  // Explanation: stillMs must hit NEED AND consecutive-still frame streak must be >= REQUIRE_CONSEC_FRAMES.
-  // If you move once: both reset immediately.
+  const STILL_THRESH = 3.8;       // lower = stricter
+  const WARMUP_FRAMES = 24;
+  const REQUIRE_CONSEC_FRAMES = 90;
 
   const PORTAL_DELAY = 240;
-  const PORTAL_TOTAL_MS = 5600;
   const KEY_REVEAL_AT_MS = 4000;
   const KEY_HOLD_MS      = 4500;
   const AUDIO_FADE_MS    = 1600;
-  const REDIRECT_AFTER   = KEY_REVEAL_AT_MS + KEY_HOLD_MS + 600; // gives time to read/copy key
+  const REDIRECT_AFTER   = KEY_REVEAL_AT_MS + KEY_HOLD_MS + 600;
+
+  // Chat feel (typing delay)
+  const TYPE_MIN_MS = 520;
+  const TYPE_MAX_MS = 1100;
 
   const vid = document.getElementById("vid");
   const startBtn = document.getElementById("start");
@@ -246,7 +305,6 @@
   const keyValue  = document.getElementById("keyValue");
   const copyBtn   = document.getElementById("copyBtn");
   const copied    = document.getElementById("copied");
-
   keyValue.textContent = SECRET_KEY;
 
   copyBtn.addEventListener("click", async () => {
@@ -265,7 +323,7 @@
     }
   });
 
-  // Coward chat
+  // Coward chat elements
   const chatEl = document.getElementById("chat");
   const confessionEl = document.getElementById("confession");
   const enterBtn = document.getElementById("enterBtn");
@@ -274,8 +332,8 @@
   const returnBtn = document.getElementById("returnBtn");
   const stayBtn = document.getElementById("stayBtn");
 
-  // ===== storage reset =====
-  const STORAGE_VERSION = "spiral_gate_v10_ultra_strict";
+  // ===== Versioned storage reset =====
+  const STORAGE_VERSION = "spiral_gate_v11_ritual_chat";
   const VERSION_KEY = "spiral_storage_version";
   if (localStorage.getItem(VERSION_KEY) !== STORAGE_VERSION){
     localStorage.setItem(VERSION_KEY, STORAGE_VERSION);
@@ -285,7 +343,7 @@
     localStorage.removeItem("spiral_fail_count");
   }
 
-  // ===== fail whisper =====
+  // ===== Fail whisper =====
   const failEl = document.getElementById("fail");
   const FAIL_KEY = "spiral_fail_count";
   let failCount = Number(localStorage.getItem(FAIL_KEY) || 0);
@@ -302,7 +360,7 @@
   function registerFail(){ failCount++; localStorage.setItem(FAIL_KEY,String(failCount)); showFail(); }
   function clearFail(){ failCount=0; localStorage.removeItem(FAIL_KEY); failEl.textContent=""; failEl.classList.remove("show"); }
 
-  // ===== stop lock =====
+  // ===== Stop lockout after 3 stops =====
   const STOP_KEY="spiral_stop_count";
   const LOCK_KEY="spiral_locked";
   let stopCount=Number(localStorage.getItem(STOP_KEY)||0); if(!Number.isFinite(stopCount)) stopCount=0;
@@ -352,23 +410,21 @@
     return false;
   }
 
-  // ===== camera + loop =====
+  // ===== Camera + loop =====
   let stream=null, raf=null;
 
-  // Motion detection canvas (BIGGER + more sensitive)
+  // Motion detection canvas (bigger + luminance)
   const mCan=document.createElement("canvas");
   mCan.width=160; mCan.height=90;
   const mCtx=mCan.getContext("2d",{willReadFrequently:true});
 
   let last=null;
   let stillMs=0;
+  let stillStreak=0;
   let triggered=false;
   let warmup=0;
 
-  // NEW: consecutive still streak
-  let stillStreak=0;
-
-  // Ambient audio
+  // ===== Ambient sound (procedural) =====
   let audioCtx=null, master=null, droneOsc=null, shimmerOsc=null, lfo=null, lfoGain=null;
 
   function startAmbient(){
@@ -447,7 +503,6 @@
     if(triggered || locked) return;
     triggered=true;
 
-    // stop detection so we can't trigger twice
     if (raf) cancelAnimationFrame(raf);
     raf=null;
 
@@ -534,119 +589,266 @@
     stopAmbient();
   }
 
-  /* ===== Coward chat (same as before) ===== */
+  // =========================
+  // Ritual Chat: smarter arc
+  // Identify -> Pressure -> Release
+  // + typing indicator
+  // =========================
   const CHAT_KEY="spiral_coward_chat_state";
-  let chatState = JSON.parse(localStorage.getItem(CHAT_KEY)||"null") || {turns:0,readyAsked:false};
+  let chatState = JSON.parse(localStorage.getItem(CHAT_KEY)||"null") || {
+    turns: 0,
+    stage: 0,          // 0=Identify, 1=Pressure, 2=Release (ask ready)
+    readyAsked: false,
+    lastTheme: "none",
+    lastEcho: ""
+  };
   const saveChatState=()=>localStorage.setItem(CHAT_KEY,JSON.stringify(chatState));
+
   const scrollChat=()=>{ chatEl.scrollTop=chatEl.scrollHeight; };
+
   function addBubble(text,who){
     const div=document.createElement("div");
     div.className="bubble "+who;
     div.textContent=text;
     chatEl.appendChild(div);
     scrollChat();
+    return div;
   }
+
+  function addTyping(){
+    return addBubble("…", "typing");
+  }
+
   function seedChatIfEmpty(){
     if(chatEl.children.length) return;
     addBubble("You looked away.","system");
-    addBubble("What are you avoiding?","system");
+    addBubble("Name the thing you refused to face.","system");
   }
+
   function cleanWords(text){
     return (text||"").toLowerCase().replace(/[^a-z0-9\s'’-]/g," ").split(/\s+/).filter(Boolean);
   }
-  function pickEcho(text){
-    const words=cleanWords(text).filter(w=>w.length>=4);
-    if(!words.length) return "";
-    const w=words[Math.max(0,words.length-2)];
-    return w ? `"${w}"` : "";
+
+  function pickFragment(text){
+    const w = cleanWords(text).filter(x=>x.length>=4);
+    if(!w.length) return "";
+    const pick = w[Math.max(0, w.length-2)];
+    return pick ? `"${pick}"` : "";
   }
-  const THEMES=[
-    {keys:["anxiety","panic","stress","worried","worry","overthink","overthinking","fear","scared","terrified","nervous"],
-     lines:["Anxiety is movement without travel.\nName the place you keep running to.","Your mind calls it “stress.”\nYour body calls it “alarm.”"]},
-    {keys:["avoid","avoiding","procrastinate","procrastination","later","tomorrow","stall","stuck","paralyzed","freeze","postpone"],
-     lines:["Avoidance is a ritual.\nWhat do you do instead of beginning?","If you started today, what would collapse?"]},
-    {keys:["love","relationship","breakup","heart","girlfriend","boyfriend","husband","wife","her","him","they","miss","attachment"],
-     lines:["You keep circling them.\nThe spiral keeps circling you.","What are you hoping they prove about you?"]},
-    {keys:["shame","guilt","regret","embarrassed","humiliated","fault","blame","sorry","mistake"],
-     lines:["Shame survives on the unsaid.\nSay the simplest version.","Guilt can be a compass—or a cage.\nWhich one did you build?"]},
-    {keys:["money","rent","bills","debt","broke","poor","job","career","work","paycheck","pay","income"],
-     lines:["Survival turns every thought into a number.\nWhat does “enough” look like in silence?","You can’t budget your way out of emptiness.\nBut you can name what it costs you."]},
-    {keys:["death","dying","mortality","grief","funeral","cemetery","lost","loss","gone","missed","sick"],
-     lines:["You don’t fear death.\nYou fear being unfinished.","What are you trying to outlive?"]},
-    {keys:["identity","self","worth","confidence","insecure","imposter","impostor","meaning","purpose"],
-     lines:["You keep asking who you are.\nTry: what do you refuse to be?","If nobody watched, what would remain true?"]},
-    {keys:["angry","anger","mad","rage","furious","hate","resent","resentment","betrayed"],
-     lines:["Anger is often grief wearing armor.\nWhat is it protecting?","Who benefits from your silence?"]},
-    {keys:["tired","exhausted","sleep","insomnia","pain","sick","body","ache","hurt","burnout","burned","burnt"],
-     lines:["Your body is the part of you that can’t lie.\nWhere is the weight?","Rest is not a reward.\nIt’s a baseline you were denied."]},
-    {keys:["art","create","creating","music","song","paint","draw","writing","write","project","nft","drop","make"],
-     lines:["Creation is a confession you can pretend is aesthetic.\nWhat are you smuggling inside it?","You want the work to speak.\nWhat are you afraid it will say?"]}
+
+  const THEMES = [
+    { id:"fear", keys:["anxiety","panic","stress","worried","worry","overthink","overthinking","fear","scared","terrified","nervous"],
+      identify:["What is the danger you keep rehearsing?","What are you bracing for?"],
+      pressure:["If it happened right now, what would you do first?","If you stopped scanning for it, what would you notice instead?"],
+      release:["You’ve named it.\nDo you want to face the mirror again?"] },
+
+    { id:"avoid", keys:["avoid","avoiding","procrastinate","procrastination","later","tomorrow","stall","stuck","paralyzed","freeze","postpone"],
+      identify:["What do you do instead of beginning?","What do you call it when you delay on purpose?"],
+      pressure:["If you started tonight, what would collapse?","What would you lose if you stopped delaying?"],
+      release:["You know the pattern.\nAre you ready to go back?"] },
+
+    { id:"shame", keys:["shame","guilt","regret","embarrassed","humiliated","fault","blame","sorry","mistake"],
+      identify:["What is the simplest version of it?","What do you keep trying to erase?"],
+      pressure:["If you said it out loud, who would you become?","What would change if you forgave yourself first?"],
+      release:["Enough.\nReturn to the mirror?"] },
+
+    { id:"love", keys:["love","relationship","breakup","heart","girlfriend","boyfriend","husband","wife","miss","attachment","alone","lonely"],
+      identify:["Who are you still circling?","What are you hoping they prove about you?"],
+      pressure:["If they never returned, what stays unresolved?","What part of you keeps waiting?"],
+      release:["You’ve seen the loop.\nGo back?"] },
+
+    { id:"money", keys:["money","rent","bills","debt","broke","poor","job","career","work","paycheck","income"],
+      identify:["What does “enough” look like in silence?","What number keeps haunting you?"],
+      pressure:["If the numbers vanished, what would remain?","What do you fear you’ll become without control?"],
+      release:["You can breathe.\nReturn?"] },
+
+    { id:"identity", keys:["identity","self","worth","confidence","insecure","imposter","impostor","meaning","purpose"],
+      identify:["Who are you when nobody watches?","What do you refuse to be?"],
+      pressure:["If you stopped performing, what would remain?","What truth do you keep avoiding because it changes you?"],
+      release:["You’ve touched the center.\nGo back?"] },
+
+    { id:"anger", keys:["angry","anger","mad","rage","furious","hate","resent","resentment","betrayed"],
+      identify:["What is your anger protecting?","Who did you learn silence from?"],
+      pressure:["If you stopped holding it, what would you feel underneath?","Who benefits from you staying stuck?"],
+      release:["You can set it down.\nReturn?"] },
+
+    { id:"body", keys:["tired","exhausted","sleep","insomnia","pain","sick","body","ache","hurt","burnout","burned","burnt"],
+      identify:["Where is the weight in your body?","What part of you is asking to stop?"],
+      pressure:["If you rested, what would you have to admit?","What do you fear will catch up to you in stillness?"],
+      release:["Be honest.\nGo back?"] },
+
+    { id:"death", keys:["death","dying","mortality","grief","funeral","cemetery","lost","loss","gone","missed"],
+      identify:["What are you trying to outlive?","Who are you carrying with you?"],
+      pressure:["If you accepted it, what would you stop postponing?","What would you do differently this week?"],
+      release:["You’re here.\nReturn?"] },
+
+    { id:"art", keys:["art","create","creating","music","song","paint","draw","writing","write","project","nft","drop","make"],
+      identify:["What are you smuggling inside the work?","What do you hide behind aesthetic?"],
+      pressure:["If the work told the truth, what would it say?","What do you fear the audience will recognize?"],
+      release:["You’ve confessed.\nReturn?"] }
   ];
-  const FALLBACK=["Say it again, shorter.\nMake it sharp.","Don’t explain.\nPoint to the center.","What is the sentence you keep refusing to write?"];
-  const bestTheme=(text)=>{
-    const words=cleanWords(text); if(!words.length) return null;
-    let best=null,bestScore=0;
-    for(const t of THEMES){
-      let s=0; for(const k of t.keys){ if(words.includes(k)) s++; }
-      if(s>bestScore){ bestScore=s; best=t; }
-    }
-    return bestScore>0?best:null;
+
+  const GENERIC = {
+    identify:["Say it plainly.","Name the center, not the edges.","What is the thing under the story?"],
+    pressure:["If you stopped running, what would you feel first?","What happens if you stay with it for one minute?","What are you protecting yourself from?"],
+    release:["You can go back now.","Are you ready to return to the mirror?","Do you want to face it again?"]
   };
-  const pickLine=(arr)=>arr[Math.floor(Math.random()*arr.length)];
-  function replyFor(text){
-    const echo=pickEcho(text);
-    const theme=bestTheme(text);
-    let line=theme?pickLine(theme.lines):pickLine(FALLBACK);
-    if(echo && Math.random()<0.55) return `You said ${echo}.\n${line}`;
-    return line;
+
+  function pick(arr){ return arr[Math.floor(Math.random()*arr.length)]; }
+
+  function bestTheme(text){
+    const words=cleanWords(text);
+    if(!words.length) return null;
+
+    let best=null, bestScore=0;
+    for(const t of THEMES){
+      let score=0;
+      for(const k of t.keys) if(words.includes(k)) score++;
+      if(score>bestScore){ bestScore=score; best=t; }
+    }
+    return bestScore>0 ? best : null;
   }
+
+  function arcReply(text){
+    const frag = pickFragment(text);
+    const theme = bestTheme(text);
+    const t = theme || { id:"none", ...GENERIC };
+
+    chatState.lastTheme = t.id;
+    chatState.lastEcho = frag;
+
+    // Mirror a fragment, then move the arc forward
+    let opener = "";
+    if(frag && Math.random()<0.70){
+      opener = `You said ${frag}.\n`;
+    }
+
+    if(chatState.stage === 0){
+      chatState.stage = 1;
+      return opener + pick(t.identify || GENERIC.identify);
+    }
+
+    if(chatState.stage === 1){
+      chatState.stage = 2;
+      return opener + pick(t.pressure || GENERIC.pressure);
+    }
+
+    // stage 2 and beyond: keep pressure variations, but periodically offer release again
+    return opener + pick(t.pressure || GENERIC.pressure);
+  }
+
   function showReadyGate(){
-    chatState.readyAsked=true; saveChatState();
+    chatState.readyAsked=true;
+    saveChatState();
     addBubble("Are you ready to go back?","system");
     readyGate.classList.add("show");
     returnInput.value="";
     setTimeout(()=>returnInput.focus(),120);
     scrollChat();
   }
+
   function hideReadyGate(){
-    chatState.readyAsked=false; saveChatState();
+    chatState.readyAsked=false;
+    saveChatState();
     readyGate.classList.remove("show");
   }
-  const normalizeReturn=(s)=>(s||"").toUpperCase().replace(/[^A-Z]/g,"");
+
+  function normalizeReturn(s){ return (s||"").toUpperCase().replace(/[^A-Z]/g,""); }
+
+  function backFromCoward(){
+    hideReadyGate();
+    document.body.classList.remove("coward");
+    location.hash="";
+    statusEl.textContent="Mirror idle";
+    hint.textContent="Hold still.";
+    sub.textContent="The gate opens in reflection.";
+    showFail();
+  }
+
   function attemptReturn(){
-    if(normalizeReturn(returnInput.value)==="RETURN"){
+    const val = normalizeReturn(returnInput.value);
+    if(val === "RETURN"){
       addBubble("Then return.","system");
       hideReadyGate();
+      // Reset arc for next time they stop again
+      chatState.stage = 0;
+      chatState.turns = 0;
+      saveChatState();
       setTimeout(()=>backFromCoward(),650);
       return;
     }
     addBubble("Not yet.\nType RETURN.","system");
-    returnInput.value=""; returnInput.focus();
+    returnInput.value="";
+    returnInput.focus();
   }
+
   function enterCoward(){
     document.body.classList.add("coward");
     seedChatIfEmpty();
     confessionEl.focus();
-    if(chatState.readyAsked){ readyGate.classList.add("show"); setTimeout(()=>returnInput.focus(),120); }
-    else readyGate.classList.remove("show");
-  }
-  function leaveCoward(){ document.body.classList.remove("coward"); location.hash=""; }
-  function handleSend(){
-    if(locked) return;
-    const text=confessionEl.value.trim(); if(!text) return;
-    if(chatState.readyAsked){ hideReadyGate(); addBubble("Then stay.","system"); }
-    addBubble(text,"user"); confessionEl.value="";
-    const reply=replyFor(text);
-    setTimeout(()=>{
-      addBubble(reply,"system");
-      chatState.turns+=1; saveChatState();
-      if(chatState.turns%2===0) setTimeout(showReadyGate,360);
-    },420);
+
+    // If they were already at release stage, restore the gate
+    if(chatState.readyAsked){
+      readyGate.classList.add("show");
+      setTimeout(()=>returnInput.focus(),120);
+    }else{
+      readyGate.classList.remove("show");
+    }
   }
 
+  function handleSend(){
+    if(locked) return;
+
+    const text=confessionEl.value.trim();
+    if(!text) return;
+
+    // If they typed while readyGate is open, that counts as choosing "Stay"
+    if(chatState.readyAsked){
+      hideReadyGate();
+      addBubble("Then stay.","system");
+    }
+
+    addBubble(text,"user");
+    confessionEl.value="";
+
+    // typing indicator
+    const typing = addTyping();
+
+    // disable enter briefly to avoid double-send
+    enterBtn.disabled = true;
+    setTimeout(()=>{ enterBtn.disabled = false; }, 280);
+
+    const reply = arcReply(text);
+    chatState.turns += 1;
+    saveChatState();
+
+    const delay = Math.floor(TYPE_MIN_MS + Math.random()*(TYPE_MAX_MS - TYPE_MIN_MS));
+
+    setTimeout(()=>{
+      // replace typing with actual reply
+      typing.classList.remove("typing");
+      typing.classList.add("system");
+      typing.textContent = reply;
+
+      // Release stage: after pressure reply (stage became 2), ask ready on next beat
+      if(chatState.stage === 2 && !chatState.readyAsked){
+        setTimeout(showReadyGate, 520);
+      } else if(chatState.stage >= 2 && !chatState.readyAsked){
+        // If they keep talking, still offer "ready" every 2 messages
+        if(chatState.turns % 2 === 0) setTimeout(showReadyGate, 520);
+      }
+
+      scrollChat();
+    }, delay);
+  }
+
+  // =========================
+  // Stop behavior / routing
+  // =========================
   function goCoward(){
     const nowLocked=registerStop();
     stopCam();
+
     if(nowLocked){
       location.hash="#locked";
       document.body.classList.add("locked");
@@ -654,23 +856,13 @@
       applyLockedUI();
       return;
     }
+
     location.hash="#coward";
     enterCoward();
   }
 
-  function backFromCoward(){
-    hideReadyGate();
-    leaveCoward();
-    statusEl.textContent="Mirror idle";
-    hint.textContent="Hold still.";
-    sub.textContent="The gate opens in reflection.";
-    showFail();
-  }
-
   // =========================
-  // MUCH STRONGER MOTION SCORE
-  // - luminance diff
-  // - more samples
+  // Strong motion score (luminance)
   // =========================
   function motionScore(){
     if(!vid.videoWidth || !vid.videoHeight) return 999;
@@ -685,12 +877,10 @@
 
     let sum=0, count=0;
 
-    // sample every ~2 pixels (stride ~8 bytes)
     for(let i=0;i<A.length;i+=8){
       const rA=A[i], gA=A[i+1], bA=A[i+2];
       const rB=B[i], gB=B[i+1], bB=B[i+2];
 
-      // perceived luminance
       const yA = (0.2126*rA + 0.7152*gA + 0.0722*bA);
       const yB = (0.2126*rB + 0.7152*gB + 0.0722*bB);
 
@@ -712,7 +902,6 @@
 
     const m=motionScore();
 
-    // warmup
     if(warmup < WARMUP_FRAMES){
       warmup++;
       stillMs=0;
@@ -721,10 +910,7 @@
       return;
     }
 
-    // ✅ ULTRA STRICT:
-    // if motion >= threshold, hard reset BOTH:
-    // - timer
-    // - streak
+    // movement = hard reset
     if(m >= STILL_THRESH){
       stillMs = 0;
       stillStreak = 0;
@@ -738,19 +924,17 @@
       else if(stillMs < 4500) hint.textContent="Stay.";
       else if(stillMs < NEED) hint.textContent="…";
       else {
-        // extra requirement: must be continuously still for long enough
         if(stillStreak >= REQUIRE_CONSEC_FRAMES) beginPortal();
-        else {
-          // if they somehow got time without streak (frame drops), reset
-          stillMs = 0;
-          stillStreak = 0;
-        }
+        else { stillMs=0; stillStreak=0; }
       }
     }
 
     raf=requestAnimationFrame(loop);
   }
 
+  // =========================
+  // Routing
+  // =========================
   function syncRoute(){
     if(location.hash==="#coward"){
       document.body.classList.add("coward");
@@ -774,23 +958,33 @@
 
   enterBtn.onclick=handleSend;
   confessionEl.addEventListener("keydown",(e)=>{
-    if(e.key==="Enter" && !e.shiftKey){ e.preventDefault(); handleSend(); }
+    if(e.key==="Enter" && !e.shiftKey){
+      e.preventDefault();
+      handleSend();
+    }
   });
 
   returnBtn.onclick=attemptReturn;
-  stayBtn.onclick=()=>{ hideReadyGate(); addBubble("Then stay with it.","system"); confessionEl.focus(); };
-  returnInput.addEventListener("keydown",(e)=>{ if(e.key==="Enter"){ e.preventDefault(); attemptReturn(); } });
+  stayBtn.onclick=()=>{
+    hideReadyGate();
+    addBubble("Then stay with it.","system");
+    confessionEl.focus();
+  };
+  returnInput.addEventListener("keydown",(e)=>{
+    if(e.key==="Enter"){
+      e.preventDefault();
+      attemptReturn();
+    }
+  });
 
   document.addEventListener("visibilitychange",()=>{ if(document.hidden) stopCam(); });
 
-  function setUp(){
-    if(locked) location.hash="#locked";
-    showFail();
-    applyLockedUI();
-    syncRoute();
-    seedChatIfEmpty();
-  }
-  setUp();
+  // Load
+  if(locked) location.hash="#locked";
+  showFail();
+  applyLockedUI();
+  syncRoute();
+  seedChatIfEmpty();
 </script>
 </body>
 </html>
