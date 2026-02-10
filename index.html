@@ -68,8 +68,9 @@
   }
   .keyCard{position:relative;width:min(88vw,760px);border-radius:18px;padding:22px 20px;background:rgba(0,0,0,.66);box-shadow: inset 0 0 0 1px rgba(255,255,255,.10);backdrop-filter: blur(10px);-webkit-backdrop-filter: blur(10px);}
   .keyTitle{margin:0 0 8px;font-size:12px;letter-spacing:.22em;text-transform:uppercase;opacity:.80;}
-  .keyValue{margin:0 0 14px;font-size: clamp(16px, 2.6vw, 26px);letter-spacing:.12em;line-height:1.35;padding:14px 14px;border-radius:14px;background:rgba(255,255,255,.06);box-shadow: inset 0 0 0 1px rgba(255,255,255,.10);user-select:text;word-break:break-all;}
+  .keyValue{margin:0 0 12px;font-size: clamp(16px, 2.6vw, 26px);letter-spacing:.12em;line-height:1.35;padding:14px 14px;border-radius:14px;background:rgba(255,255,255,.06);box-shadow: inset 0 0 0 1px rgba(255,255,255,.10);user-select:text;word-break:break-all;}
   .keyNote{margin:0 0 14px;font-size:11px;letter-spacing:.14em;text-transform:uppercase;opacity:.62;line-height:1.35;}
+  .keyCta{margin:0 0 14px;font-size:11px;letter-spacing:.14em;text-transform:uppercase;opacity:.78;line-height:1.35;}
   .keyRow{display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap;}
   .copyBtn{pointer-events:auto;}
   .copied{font-size:11px;letter-spacing:.14em;text-transform:uppercase;opacity:0;transition: opacity 260ms ease;align-self:center;}
@@ -88,7 +89,6 @@
     filter: blur(0.35px) contrast(1.05);
   }
 
-  /* IMPORTANT: fixed layout (no jumping) */
   .cowardInner{
     position:relative;
     text-align:left;
@@ -121,27 +121,10 @@
     margin-bottom:12px;
   }
 
-  .bubble{
-    max-width:82%;
-    padding:10px 12px;
-    border-radius:14px;
-    margin:8px 0;
-    font-size:12px;
-    line-height:1.45;
-    letter-spacing:.02em;
-    white-space:pre-wrap;
-    word-wrap:break-word;
-  }
+  .bubble{max-width:82%;padding:10px 12px;border-radius:14px;margin:8px 0;font-size:12px;line-height:1.45;letter-spacing:.02em;white-space:pre-wrap;word-wrap:break-word;}
   .bubble.user{margin-left:auto;background:rgba(255,255,255,.10);box-shadow: inset 0 0 0 1px rgba(255,255,255,.08);}
   .bubble.system{margin-right:auto;background:rgba(0,0,0,.35);box-shadow: inset 0 0 0 1px rgba(255,255,255,.08);opacity:.92;}
-  .bubble.typing{
-    margin-right:auto;
-    background:rgba(0,0,0,.22);
-    box-shadow: inset 0 0 0 1px rgba(255,255,255,.08);
-    opacity:.70;
-    font-style:italic;
-    letter-spacing:.10em;
-  }
+  .bubble.typing{margin-right:auto;background:rgba(0,0,0,.22);box-shadow: inset 0 0 0 1px rgba(255,255,255,.08);opacity:.70;font-style:italic;letter-spacing:.10em;}
 
   .label{font-size:11px;letter-spacing:.16em;text-transform:uppercase;opacity:.72;margin:0 0 6px;}
   .inputRow{display:flex;gap:10px;align-items:flex-end;}
@@ -149,25 +132,14 @@
   .enterBtn{padding:12px 14px;border-radius:14px;background:rgba(255,255,255,.10);min-width:88px;height:52px;display:inline-flex;align-items:center;justify-content:center;}
   .ghostBtn{background:rgba(255,255,255,.08);}
 
-  /* Ready ritual (mode switch, no layout shift) */
-  .readyGate{
-    display:none;
-    margin-top:0;
-    padding:12px;
-    border-radius:14px;
-    background:rgba(255,255,255,.04);
-    box-shadow: inset 0 0 0 1px rgba(255,255,255,.06);
-  }
+  .readyGate{display:none;margin-top:0;padding:12px;border-radius:14px;background:rgba(255,255,255,.04);box-shadow: inset 0 0 0 1px rgba(255,255,255,.06);}
   .readyGate.show{display:block;}
   .readyPrompt{margin:0 0 10px;font-size:11px;letter-spacing:.16em;text-transform:uppercase;opacity:.75;line-height:1.35;}
   .readyRow{display:flex;gap:10px;align-items:flex-end;}
   input[type="text"]{flex:1;height:44px;padding:0 12px;border-radius:12px;border:0;outline:none;background:rgba(255,255,255,.06);color:#fff;font-size:12px;letter-spacing:.10em;text-transform:uppercase;box-shadow: inset 0 0 0 1px rgba(255,255,255,.10);}
 
-  /* When readyGate is active: hide confession input so nothing shifts */
   .cowardInner.readyMode .label,
-  .cowardInner.readyMode .inputRow{
-    display:none;
-  }
+  .cowardInner.readyMode .inputRow{display:none;}
 
   /* ===== LOCKED after 3 Stops ===== */
   .lockedPage{position:absolute;inset:0;background:#000;z-index:120;display:none;overflow:hidden;align-items:center;justify-content:center;pointer-events:auto;}
@@ -209,6 +181,7 @@
       <div class="keyCard">
         <div class="keyTitle">KEY REVEALED</div>
         <div class="keyValue" id="keyValue">1thevoidlooksback1</div>
+        <div class="keyCta">DM @photonisdead to claim, only the first will be rewarded</div>
         <div class="keyNote">Do not share it. Carry it with you.</div>
         <div class="keyRow">
           <div class="copied" id="copied">Copied.</div>
@@ -349,7 +322,7 @@
   const cowardInner = document.getElementById("cowardInner");
 
   // ===== Versioned storage reset =====
-  const STORAGE_VERSION = "spiral_gate_v12_ready_mode_fix";
+  const STORAGE_VERSION = "spiral_gate_v13_key_cta";
   const VERSION_KEY = "spiral_storage_version";
   if (localStorage.getItem(VERSION_KEY) !== STORAGE_VERSION){
     localStorage.setItem(VERSION_KEY, STORAGE_VERSION);
@@ -429,7 +402,7 @@
   // ===== Camera + loop =====
   let stream=null, raf=null;
 
-  // Motion detection canvas (bigger + luminance)
+  // Motion detection canvas
   const mCan=document.createElement("canvas");
   mCan.width=160; mCan.height=90;
   const mCtx=mCan.getContext("2d",{willReadFrequently:true});
@@ -604,16 +577,10 @@
   }
 
   // =========================
-  // Ritual Chat: smarter arc
-  // Identify -> Pressure -> Release
-  // + typing indicator
+  // Ritual Chat
   // =========================
   const CHAT_KEY="spiral_coward_chat_state";
-  let chatState = JSON.parse(localStorage.getItem(CHAT_KEY)||"null") || {
-    turns: 0,
-    stage: 0,
-    readyAsked: false
-  };
+  let chatState = JSON.parse(localStorage.getItem(CHAT_KEY)||"null") || { turns:0, stage:0, readyAsked:false };
   const saveChatState=()=>localStorage.setItem(CHAT_KEY,JSON.stringify(chatState));
   const scrollChat=()=>{ chatEl.scrollTop=chatEl.scrollHeight; };
 
@@ -685,7 +652,6 @@
   function bestTheme(text){
     const words=cleanWords(text);
     if(!words.length) return null;
-
     let best=null, bestScore=0;
     for(const t of THEMES){
       let score=0;
@@ -699,34 +665,26 @@
     const frag=pickFragment(text);
     const theme=bestTheme(text);
     const t=theme || GENERIC;
+    const opener=(frag && Math.random()<0.70) ? `You said ${frag}.\n` : "";
 
-    const opener = (frag && Math.random()<0.70) ? `You said ${frag}.\n` : "";
-
-    if(chatState.stage === 0){
-      chatState.stage = 1;
-      return opener + pick((t.identify||GENERIC.identify));
-    }
-    if(chatState.stage === 1){
-      chatState.stage = 2;
-      return opener + pick((t.pressure||GENERIC.pressure));
-    }
-    // stage 2+: keep pressure
-    return opener + pick((t.pressure||GENERIC.pressure));
+    if(chatState.stage===0){ chatState.stage=1; return opener + pick(t.identify||GENERIC.identify); }
+    if(chatState.stage===1){ chatState.stage=2; return opener + pick(t.pressure||GENERIC.pressure); }
+    return opener + pick(t.pressure||GENERIC.pressure);
   }
 
   function showReadyGate(){
-    chatState.readyAsked = true;
+    chatState.readyAsked=true;
     saveChatState();
     addBubble("Are you ready to go back?","system");
     readyGate.classList.add("show");
-    cowardInner.classList.add("readyMode");  // <<< prevents layout shift
+    cowardInner.classList.add("readyMode");
     returnInput.value="";
     setTimeout(()=>returnInput.focus(),120);
     scrollChat();
   }
 
   function hideReadyGate(){
-    chatState.readyAsked = false;
+    chatState.readyAsked=false;
     saveChatState();
     readyGate.classList.remove("show");
     cowardInner.classList.remove("readyMode");
@@ -749,8 +707,7 @@
     if(val==="RETURN"){
       addBubble("Then return.","system");
       hideReadyGate();
-      chatState.stage = 0;
-      chatState.turns = 0;
+      chatState.stage=0; chatState.turns=0;
       saveChatState();
       setTimeout(()=>backFromCoward(),650);
       return;
@@ -779,7 +736,6 @@
     const text=confessionEl.value.trim();
     if(!text) return;
 
-    // if readyGate is open and they type, it means "stay"
     if(chatState.readyAsked){
       hideReadyGate();
       addBubble("Then stay.","system");
@@ -789,28 +745,26 @@
     confessionEl.value="";
 
     const typing=addTyping();
-
     enterBtn.disabled=true;
-    setTimeout(()=>{ enterBtn.disabled=false; }, 280);
+    setTimeout(()=>{enterBtn.disabled=false;},280);
 
     const reply=arcReply(text);
-    chatState.turns += 1;
+    chatState.turns+=1;
     saveChatState();
 
-    const delay=Math.floor(TYPE_MIN_MS + Math.random()*(TYPE_MAX_MS - TYPE_MIN_MS));
-
+    const delay=Math.floor(TYPE_MIN_MS + Math.random()*(TYPE_MAX_MS-TYPE_MIN_MS));
     setTimeout(()=>{
       typing.classList.remove("typing");
       typing.classList.add("system");
-      typing.textContent = reply;
+      typing.textContent=reply;
 
-      if(chatState.stage === 2 && !chatState.readyAsked){
-        setTimeout(showReadyGate, 520);
-      } else if(chatState.stage >= 2 && !chatState.readyAsked){
-        if(chatState.turns % 2 === 0) setTimeout(showReadyGate, 520);
+      if(chatState.stage===2 && !chatState.readyAsked){
+        setTimeout(showReadyGate,520);
+      }else if(chatState.stage>=2 && !chatState.readyAsked){
+        if(chatState.turns % 2 === 0) setTimeout(showReadyGate,520);
       }
       scrollChat();
-    }, delay);
+    },delay);
   }
 
   // =========================
@@ -827,13 +781,12 @@
       applyLockedUI();
       return;
     }
-
     location.hash="#coward";
     enterCoward();
   }
 
   // =========================
-  // Strong motion score (luminance)
+  // Motion score (luminance)
   // =========================
   function motionScore(){
     if(!vid.videoWidth || !vid.videoHeight) return 999;
@@ -847,8 +800,8 @@
     let sum=0, count=0;
 
     for(let i=0;i<A.length;i+=8){
-      const yA = (0.2126*A[i] + 0.7152*A[i+1] + 0.0722*A[i+2]);
-      const yB = (0.2126*B[i] + 0.7152*B[i+1] + 0.0722*B[i+2]);
+      const yA=(0.2126*A[i] + 0.7152*A[i+1] + 0.0722*A[i+2]);
+      const yB=(0.2126*B[i] + 0.7152*B[i+1] + 0.0722*B[i+2]);
       sum += Math.abs(yA - yB);
       count++;
     }
