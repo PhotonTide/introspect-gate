@@ -69,8 +69,8 @@
   .keyCard{position:relative;width:min(88vw,760px);border-radius:18px;padding:22px 20px;background:rgba(0,0,0,.66);box-shadow: inset 0 0 0 1px rgba(255,255,255,.10);backdrop-filter: blur(10px);-webkit-backdrop-filter: blur(10px);}
   .keyTitle{margin:0 0 8px;font-size:12px;letter-spacing:.22em;text-transform:uppercase;opacity:.80;}
   .keyValue{margin:0 0 12px;font-size: clamp(16px, 2.6vw, 26px);letter-spacing:.12em;line-height:1.35;padding:14px 14px;border-radius:14px;background:rgba(255,255,255,.06);box-shadow: inset 0 0 0 1px rgba(255,255,255,.10);user-select:text;word-break:break-all;}
-  .keyNote{margin:0 0 14px;font-size:11px;letter-spacing:.14em;text-transform:uppercase;opacity:.62;line-height:1.35;}
   .keyCta{margin:0 0 14px;font-size:11px;letter-spacing:.14em;text-transform:uppercase;opacity:.78;line-height:1.35;}
+  .keyNote{margin:0 0 14px;font-size:11px;letter-spacing:.14em;text-transform:uppercase;opacity:.62;line-height:1.35;}
   .keyRow{display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap;}
   .copyBtn{pointer-events:auto;}
   .copied{font-size:11px;letter-spacing:.14em;text-transform:uppercase;opacity:0;transition: opacity 260ms ease;align-self:center;}
@@ -280,6 +280,10 @@
   const TYPE_MIN_MS = 520;
   const TYPE_MAX_MS = 1100;
 
+  // Invisible rule thresholds
+  const STOP_IMMEDIATE_MS = 1500;    // stop pressed within this = colder entry
+  const LONG_CONFESSION_CHARS = 220; // long = shorter replies
+
   const vid = document.getElementById("vid");
   const startBtn = document.getElementById("start");
   const stopTop = document.getElementById("stopTop");
@@ -322,7 +326,7 @@
   const cowardInner = document.getElementById("cowardInner");
 
   // ===== Versioned storage reset =====
-  const STORAGE_VERSION = "spiral_gate_v13_key_cta";
+  const STORAGE_VERSION = "spiral_gate_v14_memory_invisible_rules";
   const VERSION_KEY = "spiral_storage_version";
   if (localStorage.getItem(VERSION_KEY) !== STORAGE_VERSION){
     localStorage.setItem(VERSION_KEY, STORAGE_VERSION);
@@ -330,6 +334,24 @@
     localStorage.removeItem("spiral_locked");
     localStorage.removeItem("spiral_coward_chat_state");
     localStorage.removeItem("spiral_fail_count");
+    localStorage.removeItem("spiral_coward_visits");
+    localStorage.removeItem("spiral_left_early");
+  }
+
+  // ===== “Remembering” flags (light consequence across sessions) =====
+  const VISITS_KEY = "spiral_coward_visits";
+  const LEFT_EARLY_KEY = "spiral_left_early"; // 1 means they previously opened coward and didn’t complete RETURN
+  let cowardVisits = Number(localStorage.getItem(VISITS_KEY) || 0);
+  if (!Number.isFinite(cowardVisits)) cowardVisits = 0;
+
+  function markLeftEarly(){
+    localStorage.setItem(LEFT_EARLY_KEY, "1");
+  }
+  function clearLeftEarly(){
+    localStorage.removeItem(LEFT_EARLY_KEY);
+  }
+  function hasLeftEarly(){
+    return localStorage.getItem(LEFT_EARLY_KEY) === "1";
   }
 
   // ===== Fail whisper =====
@@ -413,6 +435,10 @@
   let triggered=false;
   let warmup=0;
 
+  // track mirror start for “stop immediately” invisible rule
+  let mirrorStartAt = 0;
+  let lastStopImmediate = false;
+
   // ===== Ambient sound (procedural) =====
   let audioCtx=null, master=null, droneOsc=null, shimmerOsc=null, lfo=null, lfoGain=null;
 
@@ -495,6 +521,9 @@
     if (raf) cancelAnimationFrame(raf);
     raf=null;
 
+    // success clears “unfinished” memory
+    clearLeftEarly();
+
     clearFail();
     stopCount=0;
     localStorage.setItem(STOP_KEY,"0");
@@ -546,6 +575,9 @@
 
       document.body.classList.add("mirroring");
 
+      mirrorStartAt = performance.now();
+      lastStopImmediate = false;
+
       lastT=performance.now();
       loop();
     }catch(e){
@@ -577,7 +609,7 @@
   }
 
   // =========================
-  // Ritual Chat
+  // Ritual Chat (memory + invisible rules)
   // =========================
   const CHAT_KEY="spiral_coward_chat_state";
   let chatState = JSON.parse(localStorage.getItem(CHAT_KEY)||"null") || { turns:0, stage:0, readyAsked:false };
@@ -594,10 +626,37 @@
   }
   function addTyping(){ return addBubble("…","typing"); }
 
+  function pick(arr){ return arr[Math.floor(Math.random()*arr.length)]; }
+
+  // “Remembering” openers
+  const OPENERS_FIRST = [
+    ["You looked away.","Name the thing you refused to face."]
+  ];
+  const OPENERS_RETURNED = [
+    ["You again.","Still circling."],
+    ["Still circling.","Say what you wouldn’t say."],
+    ["You didn’t finish last time.","Name it."]
+  ];
+  const OPENERS_COLD = [
+    ["You didn’t stay long.","Say it."],
+    ["You left quickly.","Short sentence."],
+    ["You ran.","Name what you ran from."]
+  ];
+
   function seedChatIfEmpty(){
     if(chatEl.children.length) return;
-    addBubble("You looked away.","system");
-    addBubble("Name the thing you refused to face.","system");
+
+    // decide which opener to use
+    const returned = hasLeftEarly() || cowardVisits >= 1;
+    const cold = !!lastStopImmediate;
+
+    let pair;
+    if (cold) pair = pick(OPENERS_COLD);
+    else if (returned) pair = pick(OPENERS_RETURNED);
+    else pair = pick(OPENERS_FIRST);
+
+    addBubble(pair[0], "system");
+    addBubble(pair[1], "system");
   }
 
   function cleanWords(text){
@@ -609,8 +668,16 @@
     const pick=w[Math.max(0,w.length-2)];
     return pick ? `"${pick}"` : "";
   }
-  function pick(arr){ return arr[Math.floor(Math.random()*arr.length)]; }
 
+  // Invisible rule: caps detection
+  function isMostlyCaps(text){
+    const letters = (text || "").match(/[A-Za-z]/g) || [];
+    if (letters.length < 6) return false;
+    const upper = letters.filter(ch => ch === ch.toUpperCase()).length;
+    return (upper / letters.length) >= 0.72;
+  }
+
+  // Themes
   const THEMES = [
     { keys:["anxiety","panic","stress","worried","worry","overthink","fear","scared","terrified","nervous"],
       identify:["What is the danger you keep rehearsing?","What are you bracing for?"],
@@ -649,6 +716,12 @@
     pressure:["If you stopped running, what would you feel first?","What happens if you stay with it for one minute?","What are you protecting yourself from?"]
   };
 
+  // Invisible rule: long message -> SHORT replies
+  const SHORT_BLUNT = {
+    identify:["Too many words.","One sentence.","Name it."],
+    pressure:["Stop explaining.","What happens if you stop running?","What are you avoiding?"]
+  };
+
   function bestTheme(text){
     const words=cleanWords(text);
     if(!words.length) return null;
@@ -661,11 +734,19 @@
     return bestScore>0 ? best : null;
   }
 
-  function arcReply(text){
+  function arcReply(text, opts){
     const frag=pickFragment(text);
     const theme=bestTheme(text);
     const t=theme || GENERIC;
-    const opener=(frag && Math.random()<0.70) ? `You said ${frag}.\n` : "";
+
+    const opener=(frag && Math.random()<0.70 && !opts.forceShort) ? `You said ${frag}.\n` : "";
+
+    // choose pool based on stage
+    if(opts.forceShort){
+      if(chatState.stage===0){ chatState.stage=1; return pick(SHORT_BLUNT.identify); }
+      if(chatState.stage===1){ chatState.stage=2; return pick(SHORT_BLUNT.pressure); }
+      return pick(SHORT_BLUNT.pressure);
+    }
 
     if(chatState.stage===0){ chatState.stage=1; return opener + pick(t.identify||GENERIC.identify); }
     if(chatState.stage===1){ chatState.stage=2; return opener + pick(t.pressure||GENERIC.pressure); }
@@ -691,6 +772,9 @@
   }
 
   function backFromCoward(){
+    // successful ritual return clears “unfinished”
+    clearLeftEarly();
+
     hideReadyGate();
     document.body.classList.remove("coward");
     location.hash="";
@@ -719,6 +803,14 @@
 
   function enterCoward(){
     document.body.classList.add("coward");
+
+    // mark “unfinished” as soon as they enter (cleared only by RETURN or success portal)
+    markLeftEarly();
+
+    // increment visits (for remembering)
+    cowardVisits += 1;
+    localStorage.setItem(VISITS_KEY, String(cowardVisits));
+
     seedChatIfEmpty();
     if(chatState.readyAsked){
       readyGate.classList.add("show");
@@ -736,6 +828,7 @@
     const text=confessionEl.value.trim();
     if(!text) return;
 
+    // if return gate is open and they keep talking, close it (they chose to stay)
     if(chatState.readyAsked){
       hideReadyGate();
       addBubble("Then stay.","system");
@@ -748,8 +841,20 @@
     enterBtn.disabled=true;
     setTimeout(()=>{enterBtn.disabled=false;},280);
 
-    const reply=arcReply(text);
-    chatState.turns+=1;
+    // Invisible rule: ALL CAPS => “Lower your voice.”
+    const caps = isMostlyCaps(text);
+    const isLong = text.length >= LONG_CONFESSION_CHARS;
+
+    // Decide reply
+    let reply;
+    if (caps){
+      reply = "Lower your voice.";
+      // don’t advance arc stage when caps fires (feels like a correction)
+    } else {
+      reply = arcReply(text, { forceShort: isLong });
+    }
+
+    chatState.turns += 1;
     saveChatState();
 
     const delay=Math.floor(TYPE_MIN_MS + Math.random()*(TYPE_MAX_MS-TYPE_MIN_MS));
@@ -758,11 +863,21 @@
       typing.classList.add("system");
       typing.textContent=reply;
 
-      if(chatState.stage===2 && !chatState.readyAsked){
-        setTimeout(showReadyGate,520);
-      }else if(chatState.stage>=2 && !chatState.readyAsked){
-        if(chatState.turns % 2 === 0) setTimeout(showReadyGate,520);
+      // ask “ready” every 2 turns once pressure has begun (stage>=2),
+      // and always after the first time stage hits 2
+      if(!caps){
+        if(chatState.stage===2 && !chatState.readyAsked){
+          setTimeout(showReadyGate,520);
+        }else if(chatState.stage>=2 && !chatState.readyAsked){
+          if(chatState.turns % 2 === 0) setTimeout(showReadyGate,520);
+        }
+      } else {
+        // caps correction can still trigger “ready” later, but not immediately
+        if(chatState.stage>=2 && !chatState.readyAsked && (chatState.turns % 2 === 0)){
+          setTimeout(showReadyGate,720);
+        }
       }
+
       scrollChat();
     },delay);
   }
@@ -771,6 +886,10 @@
   // Stop behavior / routing
   // =========================
   function goCoward(){
+    // Invisible rule: stop immediately -> colder chat entry
+    const now = performance.now();
+    lastStopImmediate = (mirrorStartAt > 0 && (now - mirrorStartAt) <= STOP_IMMEDIATE_MS);
+
     const nowLocked=registerStop();
     stopCam();
 
@@ -828,7 +947,7 @@
       return;
     }
 
-    // movement = hard reset
+    // movement = HARD reset
     if(m >= STILL_THRESH){
       stillMs = 0;
       stillStreak = 0;
@@ -862,6 +981,7 @@
       document.body.classList.add("locked");
       document.body.classList.remove("coward");
     }else if(location.hash==="#return"){
+      // unlocking counts as “coming back” but not “finishing”
       unlockNow();
     }else{
       document.body.classList.remove("coward");
@@ -902,6 +1022,8 @@
   showFail();
   applyLockedUI();
   syncRoute();
+
+  // If they refresh while on the coward page, it should still feel “remembering”
   seedChatIfEmpty();
 </script>
 </body>
